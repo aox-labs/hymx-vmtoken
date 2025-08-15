@@ -7,7 +7,6 @@ import (
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"maps"
 	"math/big"
-	"sync"
 )
 
 var log = common.NewLog("vmtoken")
@@ -42,7 +41,6 @@ type VmToken struct {
 	owner        string
 	burnFee      *big.Int
 	feeRecipient string
-	rwlock       sync.RWMutex
 }
 
 func New(info schema.Info, owner string) *VmToken {
@@ -54,7 +52,6 @@ func New(info schema.Info, owner string) *VmToken {
 		owner:        owner,
 		burnFee:      big.NewInt(0),
 		feeRecipient: owner,
-		rwlock:       sync.RWMutex{},
 	}
 }
 
@@ -124,8 +121,6 @@ func (v *VmToken) Apply(from string, meta vmmSchema.Meta) (res *vmmSchema.Result
 }
 
 func (v *VmToken) Checkpoint() (data string, err error) {
-	v.rwlock.Lock()
-	defer v.rwlock.Unlock()
 	snap := schema.TokenSnapshot{
 		Id:           v.info.Id,
 		Name:         v.info.Name,
@@ -147,8 +142,6 @@ func (v *VmToken) Checkpoint() (data string, err error) {
 }
 
 func (v *VmToken) Restore(data string) error {
-	v.rwlock.Lock()
-	defer v.rwlock.Unlock()
 	snap := &schema.TokenSnapshot{}
 	if err := json.Unmarshal([]byte(data), snap); err != nil {
 		return err

@@ -85,8 +85,18 @@ After spawning:
 
 Read example (see `example/vmtoken_test.go`):
 ```go
-url := fmt.Sprintf("%s/cache/%s/%s", hymxUrl, pid, key)
-GET /cache/<pid>/<key>
+// get token info and balance from cache
+func Test_Cache_Token_Info(t *testing.T) {
+    res, err := getCacheData(hymxUrl, tokenPid, "TokenInfo")
+    assert.NoError(t, err)
+    t.Log(res)
+}
+
+func Test_Cache_Balances(t *testing.T) {
+    res, err := getCacheData(hymxUrl, tokenPid, "Balances")
+    assert.NoError(t, err)
+    t.Log(res)
+}
 ```
 
 ## Run the Service (CLI)
