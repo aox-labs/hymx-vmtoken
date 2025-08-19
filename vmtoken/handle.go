@@ -51,6 +51,10 @@ func (v *VmToken) handleSetParams(from string, meta vmmSchema.Meta) (res *vmmSch
 		v.owner = meta.Params["Owner"]
 	}
 
+	if meta.Params["MintOwner"] != "" {
+		v.mintOwner = meta.Params["MintOwner"]
+	}
+
 	if meta.Params["FeeRecipient"] != "" {
 		v.feeRecipient = meta.Params["FeeRecipient"]
 	}
@@ -253,7 +257,7 @@ func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSch
 		err = schema.ErrInvalidQuantityFormat
 		return
 	}
-	if from != v.owner {
+	if from != v.mintOwner {
 		err = schema.ErrIncorrectOwner
 		return
 	}

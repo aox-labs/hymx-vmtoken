@@ -25,6 +25,7 @@
 实例化后：
 - `owner` 为发起者账户（`env.AccId`）。
 - 初始 `totalSupply = 0`，`balances = {}`，`burnFee = 0`，`feeRecipient = owner`。
+- `mintOwner = owner`（允许执行增发 Mint 的账户；可由 `owner` 修改）。
 
 ### Action 与参数规范
 
@@ -36,7 +37,7 @@
 
 - **Set-Params**（仅限 owner）
   - 描述：更新代币与账户参数。
-  - 参数（任填其一或多项）：`Owner`, `FeeRecipient`, `Name`, `Ticker`, `Decimals`, `Logo`, `BurnFee`（十进制字符串）。
+  - 参数（任填其一或多项）：`Owner`, `MintOwner`, `FeeRecipient`, `Name`, `Ticker`, `Decimals`, `Logo`, `BurnFee`（十进制字符串）。
   - 返回 Tags：`Set-Params-Notice = success`。
   - 缓存：更新后会刷新 `TokenInfo` 缓存。
 
@@ -64,9 +65,10 @@
     - 接收者的 `Credit-Notice`，Tags：`Ticker`, `Action=Credit-Notice`, `Sender`, `Quantity`。
   - 缓存：更新 `Balances:<sender>` 与 `Balances:<recipient>`、`Balances`、`TotalSupply`。
 
-- **Mint**（仅限 owner）
+- **Mint**（仅限 mintOwner）
   - 描述：给 `Recipient` 增发 `Quantity`。
   - 参数：`Recipient`, `Quantity`（十进制字符串）。
+  - 权限：调用者必须等于 `mintOwner`（可由 `owner` 通过 `Set-Params` 配置）。
   - 返回：两条 `Mint-Notice`（发送给 owner 与 recipient），Tags 包含 `Recipient`, `Quantity`, `Ticker`。
   - 缓存：更新 `totalSupply` 和受影响账户的缓存。
 
@@ -79,7 +81,7 @@
 
 
 ### 缓存键（通过 Hymx 节点 HTTP 暴露）
-- `TokenInfo`：字符串化 JSON，包含 `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `BurnFee`, `FeeRecipient`。
+- `TokenInfo`：字符串化 JSON，包含 `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`。
 - `TotalSupply`：总供应量字符串。
 - `Balances`：字符串化 JSON（地址->余额字符串）。
 - `Balances:<Account>`：某账户余额字符串。
@@ -174,7 +176,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Quantity", Value: "100000"},
 })
 
-// Mint（仅 owner）
+// Mint（仅 mintOwner）
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Mint"},
     {Name: "Recipient", Value: hySdk.GetAddress()},
@@ -193,6 +195,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 ```go
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Set-Params"},
+    {Name: "MintOwner", Value: "0x..."},          // 配置允许执行 Mint 的账户
     {Name: "BurnFee", Value: "10"},             // 设置燃烧手续费
     {Name: "FeeRecipient", Value: "0x..."},      // 手续费接收者
     {Name: "Name", Value: "NewName"},            // 其他可选字段

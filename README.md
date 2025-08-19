@@ -25,6 +25,7 @@ Provide the following tags when instantiating a vmToken:
 After spawning:
 - `owner` is the spawner account (`env.AccId`).
 - Initial state: `totalSupply = 0`, `balances = {}`, `burnFee = 0`, `feeRecipient = owner`.
+- `mintOwner = owner` (the account allowed to call Mint; can be changed by `owner`).
 
 ### Actions and Parameters
 
@@ -36,7 +37,7 @@ After spawning:
 
 - Set-Params (owner-only)
   - Updates token and account parameters.
-  - Any of: `Owner`, `FeeRecipient`, `Name`, `Ticker`, `Decimals`, `Logo`, `BurnFee` (decimal string).
+  - Any of: `Owner`, `MintOwner`, `FeeRecipient`, `Name`, `Ticker`, `Decimals`, `Logo`, `BurnFee` (decimal string).
   - Return tags: `Set-Params-Notice = success`.
   - Cache: refreshes `TokenInfo`.
 
@@ -64,9 +65,10 @@ After spawning:
     - Recipient’s `Credit-Notice` with tags `Ticker`, `Action=Credit-Notice`, `Sender`, `Quantity`.
   - Cache: updates `Balances:<sender>`, `Balances:<recipient>`, `Balances`, `TotalSupply`.
 
-- Mint (owner-only)
+- Mint (mintOwner-only)
   - Mints `Quantity` to `Recipient`.
   - Params: `Recipient`, `Quantity` (decimal string).
+  - Permission: caller must equal `mintOwner` (configurable by `owner` via `Set-Params`).
   - Return: two `Mint-Notice` messages (to owner and recipient), tags include `Recipient`, `Quantity`, `Ticker`.
   - Cache: updates `totalSupply` and affected account caches.
 
@@ -78,7 +80,7 @@ After spawning:
   - Cache: updates `totalSupply` (minus net burn) and caches for `from` and `feeRecipient`.
 
 ### Cache Keys (via Hymx node HTTP)
-- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `BurnFee`, `FeeRecipient`.
+- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`.
 - `TotalSupply`: total supply as a string.
 - `Balances`: stringified JSON (address -> balance string).
 - `Balances:<Account>`: balance string of an account.
@@ -173,7 +175,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Quantity", Value: "100000"},
 })
 
-// Mint (owner-only)
+// Mint (mintOwner-only)
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Mint"},
     {Name: "Recipient", Value: hySdk.GetAddress()},
@@ -192,6 +194,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 ```go
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Set-Params"},
+    {Name: "MintOwner", Value: "0x..."},   // account allowed to call Mint
     {Name: "BurnFee", Value: "10"},        // burn fee
     {Name: "FeeRecipient", Value: "0x..."},
     {Name: "Name", Value: "NewName"},

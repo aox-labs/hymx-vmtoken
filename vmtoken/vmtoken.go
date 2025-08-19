@@ -39,6 +39,7 @@ type VmToken struct {
 	totalSupply  *big.Int
 	balances     map[string]*big.Int
 	owner        string
+	mintOwner    string
 	burnFee      *big.Int
 	feeRecipient string
 }
@@ -50,6 +51,7 @@ func New(info schema.Info, owner string) *VmToken {
 		totalSupply:  big.NewInt(0),
 		balances:     map[string]*big.Int{},
 		owner:        owner,
+		mintOwner:    owner,
 		burnFee:      big.NewInt(0),
 		feeRecipient: owner,
 	}
@@ -62,6 +64,7 @@ func (v *VmToken) cacheTokenInfo() map[string]string {
 		"Denomination": v.info.Decimals,
 		"Logo":         v.info.Logo,
 		"Owner":        v.owner,
+		"MintOwner":    v.mintOwner,
 		"BurnFee":      v.burnFee.String(),
 		"FeeRecipient": v.feeRecipient,
 	}
@@ -130,6 +133,7 @@ func (v *VmToken) Checkpoint() (data string, err error) {
 		TotalSupply:  v.totalSupply,
 		Balances:     v.balances,
 		Owner:        v.owner,
+		MintOwner:    v.mintOwner,
 		BurnFee:      v.burnFee,
 		FeeRecipient: v.feeRecipient,
 	}
@@ -148,6 +152,7 @@ func (v *VmToken) Restore(data string) error {
 	}
 
 	v.owner = snap.Owner
+	v.mintOwner = snap.MintOwner
 	v.feeRecipient = snap.FeeRecipient
 	v.burnFee = snap.BurnFee
 	v.balances = snap.Balances

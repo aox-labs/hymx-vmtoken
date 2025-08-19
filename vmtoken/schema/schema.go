@@ -23,6 +23,7 @@ type TokenSnapshot struct {
 	TotalSupply  *big.Int            `json:"totalSupply"`
 	Balances     map[string]*big.Int `json:"balances"`
 	Owner        string              `json:"owner"`
+	MintOwner    string              `json:"mintOwner"`
 	BurnFee      *big.Int            `json:"burnFee"`
 	FeeRecipient string              `json:"feeRecipient"`
 }
