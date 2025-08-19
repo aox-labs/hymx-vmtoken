@@ -28,7 +28,20 @@ func (v *VmToken) handleInfo(from string) (res *vmmSchema.Result, err error) {
 	return
 }
 
-func (v *VmToken) handleSetParams(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, err error) {
+func (v *VmToken) handleSetParams(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, applyErr error) {
+	var err error
+	defer func() {
+		if err != nil {
+			// add Burn-Error Notice
+			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
+				Target: from,
+				Tags: []goarSchema.Tag{
+					{Name: "Action", Value: "Set-Params-Error"},
+					{Name: "Error", Value: err.Error()},
+				},
+			})
+		}
+	}()
 	if from != v.owner {
 		err = schema.ErrIncorrectOwner
 		return
@@ -145,7 +158,21 @@ func (v *VmToken) handleBalanceOf(from string, params map[string]string) (res *v
 	return
 }
 
-func (v *VmToken) handleTransfer(from string, params map[string]string) (res *vmmSchema.Result, err error) {
+func (v *VmToken) handleTransfer(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
+	var err error
+	defer func() {
+		if err != nil {
+			// add Burn-Error Notice
+			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
+				Target: from,
+				Tags: []goarSchema.Tag{
+					{Name: "Action", Value: "Transfer-Error"},
+					{Name: "Error", Value: err.Error()},
+				},
+			})
+		}
+	}()
+
 	recipient, ok := params["Recipient"]
 	if !ok {
 		err = schema.ErrMissingRecipient
@@ -197,7 +224,20 @@ func (v *VmToken) handleTransfer(from string, params map[string]string) (res *vm
 	return
 }
 
-func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSchema.Result, err error) {
+func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
+	var err error
+	defer func() {
+		if err != nil {
+			// add Burn-Error Notice
+			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
+				Target: from,
+				Tags: []goarSchema.Tag{
+					{Name: "Action", Value: "Mint-Error"},
+					{Name: "Error", Value: err.Error()},
+				},
+			})
+		}
+	}()
 	recipient, ok := params["Recipient"]
 	if !ok {
 		err = schema.ErrMissingRecipient
@@ -249,7 +289,7 @@ func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSch
 	return
 }
 
-func (v *VmToken) handleBurn(from string, params map[string]string) (res *vmmSchema.Result, err error) {
+func (v *VmToken) handleBurn(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
 	recipient, ok := params["Recipient"]
 	if !ok {
 		recipient, ok = params["X-Recipient"]
@@ -257,6 +297,21 @@ func (v *VmToken) handleBurn(from string, params map[string]string) (res *vmmSch
 			recipient = from
 		}
 	}
+
+	var err error
+	defer func() {
+		if err != nil {
+			// add Burn-Error Notice
+			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
+				Target: from,
+				Tags: []goarSchema.Tag{
+					{Name: "Action", Value: "Burn-Error"},
+					{Name: "Error", Value: err.Error()},
+				},
+			})
+		}
+	}()
+
 	_, _, err = utils.IDCheck(recipient)
 	if err != nil {
 		return
