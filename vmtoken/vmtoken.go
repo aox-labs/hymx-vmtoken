@@ -82,8 +82,6 @@ func (v *VmToken) cacheBalances(updateBalances map[string]*big.Int) map[string]s
 		}
 		cacheMap["Balances:"+k] = vl.String()
 	}
-	bals, _ := json.Marshal(v.balances)
-	cacheMap["Balances"] = string(bals)
 	cacheMap["TotalSupply"] = v.totalSupply.String()
 	return cacheMap
 }
@@ -108,16 +106,16 @@ func (v *VmToken) Apply(from string, meta vmmSchema.Meta) (res *vmmSchema.Result
 		return v.handleSetParams(from, meta)
 	case "Total-Supply", "TotalSupply":
 		return v.handleTotalSupply(from)
-	case "Balances":
-		return v.handleBalances(from)
+	// case "Balances":
+	// 	return v.handleBalances(from)
 	case "Balance":
 		return v.handleBalanceOf(from, meta.Params)
 	case "Transfer":
-		return v.handleTransfer(from, meta.Params)
+		return v.handleTransfer(meta.ItemId, from, meta.Params)
 	case "Mint":
 		return v.handleMint(from, meta.Params)
-	case "Burn":
-		return v.handleBurn(from, meta.Params)
+	// case "Burn":
+	// 	return v.handleBurn(from, meta.Params)
 	default:
 		return
 	}

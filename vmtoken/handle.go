@@ -1,11 +1,11 @@
 package vmtoken
 
 import (
-	"encoding/json"
 	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 	goarSchema "github.com/permadao/goar/schema"
+	"strings"
 
 	"math/big"
 )
@@ -36,6 +36,11 @@ func (v *VmToken) handleSetParams(from string, meta vmmSchema.Meta) (res *vmmSch
 	var err error
 	defer func() {
 		if err != nil {
+			if res == nil {
+				res = &vmmSchema.Result{
+					Messages: make([]*vmmSchema.ResMessage, 0),
+				}
+			}
 			// add Burn-Error Notice
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
@@ -44,6 +49,7 @@ func (v *VmToken) handleSetParams(from string, meta vmmSchema.Meta) (res *vmmSch
 					{Name: "Error", Value: err.Error()},
 				},
 			})
+			res.Error = err.Error()
 		}
 	}()
 	if from != v.owner {
@@ -116,31 +122,6 @@ func (v *VmToken) handleTotalSupply(from string) (res *vmmSchema.Result, err err
 	return
 }
 
-func (v *VmToken) handleBalances(from string) (res *vmmSchema.Result, err error) {
-	balances := make(map[string]string)
-
-	for k, v := range v.balances {
-		balances[k] = v.String()
-	}
-
-	balancesJs, err := json.Marshal(balances)
-	if err != nil {
-		return
-	}
-	res = &vmmSchema.Result{
-		Messages: []*vmmSchema.ResMessage{
-			{
-				Target: from,
-				Data:   string(balancesJs),
-				Tags: []goarSchema.Tag{
-					{Name: "Ticker", Value: v.info.Ticker},
-				},
-			},
-		},
-	}
-	return
-}
-
 func (v *VmToken) handleBalanceOf(from string, params map[string]string) (res *vmmSchema.Result, err error) {
 	accid := from
 	if recipient, ok := params["Recipient"]; ok {
@@ -166,18 +147,25 @@ func (v *VmToken) handleBalanceOf(from string, params map[string]string) (res *v
 	return
 }
 
-func (v *VmToken) handleTransfer(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
+func (v *VmToken) handleTransfer(itemId, from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
 	var err error
 	defer func() {
 		if err != nil {
+			if res == nil {
+				res = &vmmSchema.Result{
+					Messages: make([]*vmmSchema.ResMessage, 0),
+				}
+			}
 			// add Burn-Error Notice
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
 					{Name: "Action", Value: "Transfer-Error"},
+					{Name: "TransactionId", Value: itemId},
 					{Name: "Error", Value: err.Error()},
 				},
 			})
+			res.Error = err.Error()
 		}
 	}()
 
@@ -221,7 +209,15 @@ func (v *VmToken) handleTransfer(from string, params map[string]string) (res *vm
 			{Name: "Quantity", Value: qty},
 		},
 	}
-	// udpateBalances :=
+
+	// Add forwarded tags to the credit and debit notice messages
+	for k, val := range params {
+		if strings.HasPrefix(k, "X-") {
+			debitNotice.Tags = append(debitNotice.Tags, goarSchema.Tag{Name: k, Value: val})
+			creditNotice.Tags = append(creditNotice.Tags, goarSchema.Tag{Name: k, Value: val})
+		}
+	}
+
 	res = &vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{debitNotice, creditNotice},
 		Cache: v.cacheBalances(map[string]*big.Int{
@@ -236,6 +232,11 @@ func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSch
 	var err error
 	defer func() {
 		if err != nil {
+			if res == nil {
+				res = &vmmSchema.Result{
+					Messages: make([]*vmmSchema.ResMessage, 0),
+				}
+			}
 			// add Burn-Error Notice
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
@@ -244,6 +245,7 @@ func (v *VmToken) handleMint(from string, params map[string]string) (res *vmmSch
 					{Name: "Error", Value: err.Error()},
 				},
 			})
+			res.Error = err.Error()
 		}
 	}()
 	recipient, ok := params["Recipient"]
@@ -309,6 +311,11 @@ func (v *VmToken) handleBurn(from string, params map[string]string) (res *vmmSch
 	var err error
 	defer func() {
 		if err != nil {
+			if res == nil {
+				res = &vmmSchema.Result{
+					Messages: make([]*vmmSchema.ResMessage, 0),
+				}
+			}
 			// add Burn-Error Notice
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
@@ -317,6 +324,7 @@ func (v *VmToken) handleBurn(from string, params map[string]string) (res *vmmSch
 					{Name: "Error", Value: err.Error()},
 				},
 			})
+			res.Error = err.Error()
 		}
 	}()
 
