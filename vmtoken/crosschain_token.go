@@ -2,9 +2,10 @@ package vmtoken
 
 import (
 	"encoding/json"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
 	"maps"
 	"math/big"
+
+	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
 
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
@@ -20,9 +21,9 @@ type CrossChainToken struct {
 }
 
 // NewCrossChainToken creates a new cross-chain token VM
-func NewCrossChainToken(info schema.Info, owner string, burnFee *big.Int, feeRecipient string, burnProcessor string) *CrossChainToken {
+func NewCrossChainToken(info schema.Info, owner string, mintOwner string, burnFee *big.Int, feeRecipient string, burnProcessor string) *CrossChainToken {
 	return &CrossChainToken{
-		BasicToken:    NewBasicToken(info, owner),
+		BasicToken:    NewBasicToken(info, owner, mintOwner),
 		BurnFee:       burnFee,
 		FeeRecipient:  feeRecipient,
 		BurnProcessor: burnProcessor,
@@ -62,6 +63,17 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 		return
 	}
 
+	// Parse and validate MintOwner with default value
+	mintOwnerStr := env.Meta.Params["MintOwner"]
+	if mintOwnerStr == "" {
+		mintOwnerStr = env.AccId // Default to owner
+	}
+	_, mintOwner, err := utils.IDCheck(mintOwnerStr)
+	if err != nil {
+		err = schema.ErrInvalidMintOwner
+		return
+	}
+
 	// Parse and validate BurnProcessor with default value
 	burnProcessorStr := env.Meta.Params["BurnProcessor"]
 	if burnProcessorStr == "" {
@@ -79,7 +91,7 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 		Ticker:   env.Meta.Params["Ticker"],
 		Decimals: env.Meta.Params["Decimals"],
 		Logo:     env.Meta.Params["Logo"],
-	}, env.AccId, burnFee, feeRecipient, burnProcessor)
+	}, env.AccId, mintOwner, burnFee, feeRecipient, burnProcessor)
 
 	return vm, nil
 }

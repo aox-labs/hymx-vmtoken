@@ -1,9 +1,10 @@
 package example
 
 import (
+	"testing"
+
 	goarSchema "github.com/permadao/goar/schema"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
@@ -20,6 +21,7 @@ func Test_CrossChain_Token_Spawn(t *testing.T) {
 			{Name: "Ticker", Value: "ccToken"},
 			{Name: "Decimals", Value: "18"},
 			{Name: "Logo", Value: "UkS-mdoiG8hcAClhKK8ch4ZhEzla0mCPDOix9hpdSFE"},
+			{Name: "MintOwner", Value: "0xf4FfBA30E4A427E4c743A9142dEDba284487c75F"},      // Custom mint owner
 			{Name: "BurnFee", Value: "100"},                                               // Cross-chain specific: burn fee
 			{Name: "FeeRecipient", Value: "0xf4FfBA30E4A427E4c743A9142dEDba284487c75F"},   // Cross-chain specific: fee recipient
 			{Name: "BurnProcessor", Value: "MysFttDUI1YJKcFwYIyqVWGfFGnetcCp_5TGjdhVgS4"}, // Cross-chain specific: burn processor

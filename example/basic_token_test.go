@@ -2,12 +2,13 @@ package example
 
 import (
 	"fmt"
-	"github.com/hymatrix/hymx/sdk"
-	goarSchema "github.com/permadao/goar/schema"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/hymatrix/hymx/sdk"
+	goarSchema "github.com/permadao/goar/schema"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -29,6 +30,7 @@ func Test_Basic_Token_Spawn(t *testing.T) {
 			{Name: "Ticker", Value: "bToken"},
 			{Name: "Decimals", Value: "12"},
 			{Name: "Logo", Value: "UkS-mdoiG8hcAClhKK8ch4ZhEzla0mCPDOix9hpdSFE"},
+			{Name: "MintOwner", Value: hySdk.GetAddress()}, // Custom mint owner
 		})
 	assert.NoError(t, err)
 	t.Log("Basic token PID: ", res.Id)

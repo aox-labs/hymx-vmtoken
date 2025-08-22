@@ -2,14 +2,15 @@ package vmtoken
 
 import (
 	"encoding/json"
+	"maps"
+	"math/big"
+	"strings"
+
 	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
 	"github.com/hymatrix/hymx/common"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 	goarSchema "github.com/permadao/goar/schema"
-	"maps"
-	"math/big"
-	"strings"
 )
 
 var log = common.NewLog("vm_token")
@@ -26,14 +27,14 @@ type BasicToken struct {
 }
 
 // NewBasicToken creates a new basic token VM
-func NewBasicToken(info schema.Info, owner string) *BasicToken {
+func NewBasicToken(info schema.Info, owner string, mintOwner string) *BasicToken {
 	return &BasicToken{
 		InitialSync: false,
 		Info:        info,
 		TotalSupply: big.NewInt(0),
 		Balances:    map[string]*big.Int{},
 		Owner:       owner,
-		MintOwner:   owner,
+		MintOwner:   mintOwner,
 	}
 }
 
@@ -48,13 +49,24 @@ func SpawnBasicToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 		}
 	}
 
+	// Parse and validate MintOwner with default value
+	mintOwnerStr := env.Meta.Params["MintOwner"]
+	if mintOwnerStr == "" {
+		mintOwnerStr = env.AccId // Default to owner
+	}
+	_, mintOwner, err := utils.IDCheck(mintOwnerStr)
+	if err != nil {
+		err = schema.ErrInvalidMintOwner // Reuse error type for now
+		return
+	}
+
 	vm = NewBasicToken(schema.Info{
 		Id:       env.Id,
 		Name:     env.Meta.Params["Name"],
 		Ticker:   env.Meta.Params["Ticker"],
 		Decimals: env.Meta.Params["Decimals"],
 		Logo:     env.Meta.Params["Logo"],
-	}, env.AccId)
+	}, env.AccId, mintOwner)
 
 	return vm, nil
 }
