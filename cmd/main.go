@@ -102,8 +102,9 @@ func run(c *cli.Context) (err error) {
 
 	s := server.New(bundler, redisURL, arweaveURL, hymxURL, nodeInfo)
 
-	// mount vm token
-	s.Mount(schema.VmTokenModuleFormat, vmtoken.SpawnVmToken)
+	// mount vm token variants
+	s.Mount(schema.VmTokenBasicModuleFormat, vmtoken.SpawnBasicToken)
+	s.Mount(schema.VmTokenCrossChainModuleFormat, vmtoken.SpawnCrossChainToken)
 
 	s.Run(port)
 
