@@ -12,4 +12,5 @@ var (
 	ErrIncorrectTokenInfo    = errors.New("err_incorrect_token_info")
 	ErrUnsupportedAction     = errors.New("err_unsupported_action")
 	ErrInvalidFeeRecipient   = errors.New("err_invalid_fee_recipient")
+	ErrInvalidMintOwner      = errors.New("err_invalid_mint_owner")
 )
