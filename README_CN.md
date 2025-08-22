@@ -44,16 +44,19 @@ s.Mount("hymx.crosschain.token.0.0.1", vmtoken.SpawnCrossChainToken)
 - **Ticker**: 代币符号（必填）
 - **Decimals**: 精度（必填，字符串数值）
 - **Logo**: Logo 的 Arweave 资源标识（可选）
+- **MintOwner**: 允许增发代币的账户（可选，默认为 owner）
 
 #### 跨链代币特有参数：
 - **BurnFee**: 销毁手续费（可选，默认为 "0"）
 - **FeeRecipient**: 手续费接收者（可选，默认为 owner）
 - **BurnProcessor**: 销毁交易后处理器（可选，默认为 owner）
 
+**注意**: 跨链代币也支持基础代币的所有参数，包括 `MintOwner`
+
 实例化后：
 - `owner` 是实例化账户（`env.AccId`）
 - 初始状态：`totalSupply = 0`，`balances = {}`
-- `mintOwner = owner`（允许调用 Mint 的账户；可由 `owner` 更改）
+- `mintOwner` 默认为 `owner`，但可在生成时指定（允许调用 Mint 的账户；可由 `owner` 更改）
 - **跨链代币**：`burnFee = 0`，`feeRecipient = owner`，`burnProcessor = owner`
 
 ### 操作和参数
@@ -134,6 +137,7 @@ res, err := hySdk.SpawnAndWait(
         {Name: "Ticker", Value: "bToken"},
         {Name: "Decimals", Value: "12"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "MintOwner", Value: "0x..."}, // 允许增发代币的账户（可选）
     },
 )
 tokenPid := res.Id
@@ -149,6 +153,7 @@ res, err := hySdk.SpawnAndWait(
         {Name: "Ticker", Value: "ccToken"},
         {Name: "Decimals", Value: "18"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "MintOwner", Value: "0x..."},      // 允许增发代币的账户（可选）
         {Name: "BurnFee", Value: "100"},           // 销毁手续费
         {Name: "FeeRecipient", Value: "0x..."},    // 手续费接收者
         {Name: "BurnProcessor", Value: "0x..."},   // 销毁处理器

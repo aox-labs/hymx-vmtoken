@@ -44,16 +44,19 @@ Both token types require the following tags when instantiating:
 - **Ticker**: token symbol (required)  
 - **Decimals**: precision (required, decimal string)
 - **Logo**: Arweave resource identifier for the logo (optional)
+- **MintOwner**: account allowed to mint tokens (optional, defaults to owner)
 
 #### Cross-Chain Token Specific Parameters:
 - **BurnFee**: burn fee (optional, defaults to "0")
 - **FeeRecipient**: fee recipient (optional, defaults to owner)
 - **BurnProcessor**: burn transaction processor (optional, defaults to owner)
 
+**Note**: Cross-chain tokens also support all basic token parameters, including `MintOwner`
+
 After spawning:
 - `owner` is the spawner account (`env.AccId`)
 - Initial state: `totalSupply = 0`, `balances = {}`
-- `mintOwner = owner` (the account allowed to call Mint; can be changed by `owner`)
+- `mintOwner` defaults to `owner` but can be specified during spawn (the account allowed to call Mint; can be changed by `owner`)
 - **Cross-chain tokens only**: `burnFee = 0`, `feeRecipient = owner`, `burnProcessor = owner`
 
 ### Actions and Parameters
@@ -134,6 +137,7 @@ res, err := hySdk.SpawnAndWait(
         {Name: "Ticker", Value: "bToken"},
         {Name: "Decimals", Value: "12"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "MintOwner", Value: "0x..."}, // account allowed to mint tokens (optional)
     },
 )
 tokenPid := res.Id
@@ -149,6 +153,7 @@ res, err := hySdk.SpawnAndWait(
         {Name: "Ticker", Value: "ccToken"},
         {Name: "Decimals", Value: "18"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "MintOwner", Value: "0x..."},      // account allowed to mint tokens (optional)
         {Name: "BurnFee", Value: "100"},           // burn fee
         {Name: "FeeRecipient", Value: "0x..."},    // fee recipient
         {Name: "BurnProcessor", Value: "0x..."},   // burn processor
