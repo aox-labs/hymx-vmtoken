@@ -22,6 +22,7 @@ Best suited for developers who want to issue and manage fungible tokens on Hymx,
 - **Module Format**: `schema.VmTokenCrossChainModuleFormat = "hymx.crosschain.token.0.0.1"`
 - **Features**: All basic features + Burn functionality
 - **Burn Support**: Includes burn fees and fee recipients for cross-chain settlements
+- **Burn Processor**: Supports custom burn notification processor, defaults to MintOwner
 - **Spawn Function**: `vmtoken.SpawnCrossChainToken`
 
 ### Server Mounting
@@ -44,11 +45,16 @@ Both token types require the following tags when instantiating:
 - **Decimals**: precision (required, decimal string)
 - **Logo**: Arweave resource identifier for the logo (optional)
 
+#### Cross-Chain Token Specific Parameters:
+- **BurnFee**: burn fee (optional, defaults to "0")
+- **FeeRecipient**: fee recipient (optional, defaults to owner)
+- **BurnProcessor**: burn transaction processor (optional, defaults to owner)
+
 After spawning:
 - `owner` is the spawner account (`env.AccId`)
 - Initial state: `totalSupply = 0`, `balances = {}`
 - `mintOwner = owner` (the account allowed to call Mint; can be changed by `owner`)
-- **Cross-chain tokens only**: `burnFee = 0`, `feeRecipient = owner`
+- **Cross-chain tokens only**: `burnFee = 0`, `feeRecipient = owner`, `burnProcessor = owner`
 
 ### Actions and Parameters
 
@@ -58,13 +64,13 @@ After spawning:
   - Returns basic token info.
   - Params: none.
   - Return tags: `Name`, `Ticker`, `Logo`, `Denomination(=Decimals)`, `Owner`, `MintOwner`.
-  - **Cross-chain tokens**: Additional tags include `BurnFee`, `FeeRecipient`.
+  - **Cross-chain tokens**: Additional tags include `BurnFee`, `FeeRecipient`, `BurnProcessor`.
   - On first call, initializes and writes cache (see Cache Keys).
 
 - **Set-Params** (owner-only)
   - Updates token and account parameters.
   - **Basic tokens**: `Owner`, `MintOwner`, `Name`, `Ticker`, `Decimals`, `Logo`.
-  - **Cross-chain tokens**: All basic params + `FeeRecipient`, `BurnFee` (decimal string).
+  - **Cross-chain tokens**: All basic params + `FeeRecipient`, `BurnFee` (decimal string), `BurnProcessor`.
   - Return tags: `Set-Params-Notice = success`.
   - Cache: refreshes `TokenInfo`.
 
@@ -102,73 +108,26 @@ After spawning:
   - Validation: `Quantity >= burnFee`; address passes ID check; sufficient balance.
   - Return: one `Burn-Notice` with tags `Sender`, `X-Recipient`, `Quantity` (=net burn), `Ticker`, `TokenId`, `Fee`, `FeeRecipient`.
   - Cache: updates `totalSupply` (minus net burn) and caches for `from` and `feeRecipient`.
+  - **Special Note**: Burn notification messages are sent to the address specified by `BurnProcessor`.
 
 ### Cache Keys (via Hymx node HTTP)
 
 #### Basic Token Cache Keys
 - `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`.
 - `TotalSupply`: total supply as a string.
-- `Balances`: stringified JSON (address -> balance string).
 - `Balances:<Account>`: balance string of an account.
 
 #### Cross-Chain Token Cache Keys
-- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`.
+- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`, `BurnProcessor`.
 - `TotalSupply`: total supply as a string.
-- `Balances`: stringified JSON (address -> balance string).
 - `Balances:<Account>`: balance string of an account.
 
-Read example (see `example/vmtoken_test.go`):
-```go
-// get token info and balance from cache
-func Test_Cache_Token_Info(t *testing.T) {
-    res, err := getCacheData(hymxUrl, tokenPid, "TokenInfo")
-    assert.NoError(t, err)
-    t.Log(res)
-}
+### Usage Examples
 
-func Test_Cache_Balances(t *testing.T) {
-    res, err := getCacheData(hymxUrl, tokenPid, "Balances")
-    assert.NoError(t, err)
-    t.Log(res)
-}
-```
-
-## Run the Service (CLI)
-
-### Config example (`cmd/config.yaml`)
-- port: listen address, e.g. `:8080`
-- ginMode: `debug` or `release`
-- redisURL: Redis connection string
-- arweaveURL: Arweave gateway
-- hymxURL: Hymx node RPC (used by the SDK to send messages)
-- prvKey: EVM private key (optional; alternative to `keyfilePath`)
-- keyfilePath: path to Arweave keyfile
-- nodeName/nodeDesc/nodeURL: node metadata
-- joinNetwork: whether to join the Hymx network
-
-### Start commands
-```bash
-# Run in foreground
-go build -o hymx ./cmd && ./hymx --config ./cmd/config.yaml
-
-# Daemon mode
-./hymx start --config ./cmd/config.yaml
-
-# Stop daemon
-./hymx stop
-```
-
-On startup the service will:
-- Build a Bundler from the provided wallet;
-- Mount both token types: `hymx.basic.token.0.0.1` to `SpawnBasicToken` and `hymx.crosschain.token.0.0.1` to `SpawnCrossChainToken`;
-- Expose cache endpoint `/cache/<pid>/<key>`.
-
-## Using the SDK
-
-### Spawn a Basic Token
+#### Spawn a Basic Token
 ```go
 res, err := hySdk.SpawnAndWait(
-    "hymx.basic.token.0.0.1",    // module format for basic token
+    BASIC_MODULE,    // Basic token module ID generated from Utils module.go
     SCHEDULER,                    // scheduler AccId (usually this node's address)
     []goarSchema.Tag{
         {Name: "Name", Value: "Basic Token"},
@@ -180,22 +139,25 @@ res, err := hySdk.SpawnAndWait(
 tokenPid := res.Id
 ```
 
-### Spawn a Cross-Chain Token
+#### Spawn a Cross-Chain Token
 ```go
 res, err := hySdk.SpawnAndWait(
-    "hymx.crosschain.token.0.0.1", // module format for cross-chain token
+    CROSSCHAIN_MODULE, // Cross-chain token module ID generated from Utils module.go
     SCHEDULER,                      // scheduler AccId (usually this node's address)
     []goarSchema.Tag{
         {Name: "Name", Value: "Cross-Chain Token"},
         {Name: "Ticker", Value: "ccToken"},
         {Name: "Decimals", Value: "18"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "BurnFee", Value: "100"},           // burn fee
+        {Name: "FeeRecipient", Value: "0x..."},    // fee recipient
+        {Name: "BurnProcessor", Value: "0x..."},   // burn processor
     },
 )
 tokenPid := res.Id
 ```
 
-### Query info and balances
+#### Query info and balances
 ```go
 // Info
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Info"}})
@@ -210,7 +172,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 })
 ```
 
-### Transfer, Mint, Burn
+#### Transfer, Mint, Burn
 ```go
 // Transfer
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
@@ -222,7 +184,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 // Mint (mintOwner-only)
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Mint"},
-    {Name: "Recipient", Value: hySdk.GetAddress()},
+    {Name: "Recipient", Value: "0x... or ar..."},
     {Name: "Quantity", Value: "50000000"},
 })
 
@@ -234,7 +196,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 })
 ```
 
-### Update parameters (owner-only)
+#### Update parameters (owner-only)
 ```go
 // Basic token parameters
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
@@ -249,6 +211,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "MintOwner", Value: "0x..."},   // account allowed to call Mint
     {Name: "BurnFee", Value: "10"},        // burn fee (cross-chain tokens only)
     {Name: "FeeRecipient", Value: "0x..."}, // fee recipient (cross-chain tokens only)
+    {Name: "BurnProcessor", Value: "0x..."}, // burn processor (cross-chain tokens only)
     {Name: "Name", Value: "NewName"},
 })
 ```
@@ -270,10 +233,12 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 - You need burn functionality for cross-chain operations
 - You want to implement token bridges or cross-chain settlements
 - You need burn fees and fee recipients
+- You need custom burn processors
 - You're building cross-chain applications
 
 ## Examples and Tests
-- See `example/vmtoken_test.go` for a full, end-to-end example from spawn to action calls and cache reads.
+- See `example/basic_token_test.go` for a full, end-to-end example of basic token functionality
+- See `example/crosschain_token_test.go` for a full, end-to-end example of cross-chain token functionality
 - Sample module Ids are provided under `cmd/mod/*.json`. Your environment may differ; use your actual deployed Ids.
 
 ## Development and Build
@@ -281,6 +246,3 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 go mod tidy
 go build -o hymx ./cmd
 ```
-
-## License
-See `LICENSE` in the repository.

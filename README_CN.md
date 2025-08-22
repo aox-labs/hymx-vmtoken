@@ -22,6 +22,7 @@
 - **模块格式**：`schema.VmTokenCrossChainModuleFormat = "hymx.crosschain.token.0.0.1"`
 - **功能特性**：包含所有基础功能 + 销毁功能
 - **销毁支持**：包含销毁手续费和手续费接收者，适用于跨链结算
+- **销毁处理器**：支持自定义销毁通知处理器，默认与 MintOwner 一致
 - **生成函数**：`vmtoken.SpawnCrossChainToken`
 
 ### 服务端挂载
@@ -44,131 +45,89 @@ s.Mount("hymx.crosschain.token.0.0.1", vmtoken.SpawnCrossChainToken)
 - **Decimals**: 精度（必填，字符串数值）
 - **Logo**: Logo 的 Arweave 资源标识（可选）
 
+#### 跨链代币特有参数：
+- **BurnFee**: 销毁手续费（可选，默认为 "0"）
+- **FeeRecipient**: 手续费接收者（可选，默认为 owner）
+- **BurnProcessor**: 销毁交易后处理器（可选，默认为 owner）
+
 实例化后：
-- `owner` 为发起者账户（`env.AccId`）
-- 初始 `totalSupply = 0`，`balances = {}`
-- `mintOwner = owner`（允许执行增发 Mint 的账户；可由 `owner` 修改）
-- **仅跨链代币**：`burnFee = 0`，`feeRecipient = owner`
+- `owner` 是实例化账户（`env.AccId`）
+- 初始状态：`totalSupply = 0`，`balances = {}`
+- `mintOwner = owner`（允许调用 Mint 的账户；可由 `owner` 更改）
+- **跨链代币**：`burnFee = 0`，`feeRecipient = owner`，`burnProcessor = owner`
 
-### Action 与参数规范
+### 操作和参数
 
-#### 通用 Actions（两种代币类型都支持）
+#### 通用操作（两种代币类型）
 
 - **Info**
-  - 描述：返回代币基础信息。
-  - 参数：无。
-  - 返回 Tags：`Name`, `Ticker`, `Logo`, `Denomination(=Decimals)`, `Owner`, `MintOwner`。
-  - **跨链代币**：额外包含 `BurnFee`, `FeeRecipient` 标签。
-  - 首次调用会初始化并写入缓存（见「缓存键」）。
+  - 返回基本代币信息
+  - 参数：无
+  - 返回标签：`Name`、`Ticker`、`Logo`、`Denomination(=Decimals)`、`Owner`、`MintOwner`
+  - **跨链代币**：额外标签包括 `BurnFee`、`FeeRecipient`、`BurnProcessor`
+  - 首次调用时，初始化并写入缓存（见缓存键）
 
 - **Set-Params**（仅限 owner）
-  - 描述：更新代币与账户参数。
-  - **基础代币参数**：`Owner`, `MintOwner`, `Name`, `Ticker`, `Decimals`, `Logo`。
-  - **跨链代币参数**：所有基础参数 + `FeeRecipient`, `BurnFee`（十进制字符串）。
-  - 返回 Tags：`Set-Params-Notice = success`。
-  - 缓存：更新后会刷新 `TokenInfo` 缓存。
+  - 更新代币和账户参数
+  - **基础代币**：`Owner`、`MintOwner`、`Name`、`Ticker`、`Decimals`、`Logo`
+  - **跨链代币**：所有基础参数 + `FeeRecipient`、`BurnFee`（十进制字符串）、`BurnProcessor`
+  - 返回标签：`Set-Params-Notice = success`
+  - 缓存：刷新 `TokenInfo`
 
 - **Total-Supply / TotalSupply**
-  - 描述：查询总供应量。
-  - 参数：无。
-  - 返回：消息 Data 为十进制字符串的总量；Tags 含 `Action=Total-Supply`, `Ticker`。
+  - 查询总供应量
+  - 参数：无
+  - 返回：消息 Data 是总供应量的十进制字符串；标签包括 `Action=Total-Supply`、`Ticker`
 
 - **Balance**
-  - 描述：查询某账户余额。
-  - 参数：可选其一 `Recipient` 或 `Target`，均不传则默认查询调用者账户。
-  - 返回 Tags：`Balance`, `Ticker`, `Account`（被查询账户），Data 为余额字符串。
+  - 查询账户余额
+  - 参数：`Recipient` 或 `Target`。如果都未提供，默认为调用者账户
+  - 返回标签：`Balance`、`Ticker`、`Account`（查询的账户）。Data 是余额字符串
 
 - **Transfer**
-  - 描述：从调用者向 `Recipient` 转账。
-  - 参数：`Recipient`（必须，支持 EVM/Arweave 地址），`Quantity`（必须，十进制字符串）。
-  - 校验：`Quantity` 数字格式；调用者余额充足；`Recipient` 通过 ID 校验。
-  - 返回：两条消息：
-    - 发送者的 `Debit-Notice`，Tags：`Ticker`, `Action=Debit-Notice`, `Recipient`, `Quantity`, `TransactionId`；
-    - 接收者的 `Credit-Notice`，Tags：`Ticker`, `Action=Credit-Notice`, `Sender`, `Quantity`, `TransactionId`。
-  - 缓存：更新 `Balances:<sender>` 与 `Balances:<recipient>`、`TotalSupply`。
+  - 从调用者转账到 `Recipient`
+  - 参数：`Recipient`（必需；支持 EVM/Arweave 地址）、`Quantity`（必需；十进制字符串）
+  - 验证：数量格式；足够余额；`Recipient` 通过 ID 检查
+  - 返回：两个消息：
+    - 调用者的 `Debit-Notice`，标签包括 `Ticker`、`Action=Debit-Notice`、`Recipient`、`Quantity`、`TransactionId`
+    - 接收者的 `Credit-Notice`，标签包括 `Ticker`、`Action=Credit-Notice`、`Sender`、`Quantity`、`TransactionId`
+  - 缓存：更新 `Balances:<sender>`、`Balances:<recipient>`、`TotalSupply`
 
 - **Mint**（仅限 mintOwner）
-  - 描述：给 `Recipient` 增发 `Quantity`。
-  - 参数：`Recipient`, `Quantity`（十进制字符串）。
-  - 权限：调用者必须等于 `mintOwner`（可由 `owner` 通过 `Set-Params` 配置）。
-  - 返回：两条 `Mint-Notice`（发送给 owner 与 recipient），Tags 包含 `Recipient`, `Quantity`, `Ticker`。
-  - 缓存：更新 `totalSupply` 和受影响账户的缓存。
+  - 向 `Recipient` 增发 `Quantity`
+  - 参数：`Recipient`、`Quantity`（十进制字符串）
+  - 权限：调用者必须等于 `mintOwner`（可通过 `Set-Params` 由 `owner` 配置）
+  - 返回：两个 `Mint-Notice` 消息（给 owner 和 recipient），标签包括 `Recipient`、`Quantity`、`Ticker`
+  - 缓存：更新 `totalSupply` 和受影响的账户缓存
 
-#### 仅跨链代币支持的 Actions
+#### 跨链代币特有操作
 
 - **Burn**
-  - 描述：从调用者余额中销毁 `Quantity`，其中 `burnFee` 会转给 `feeRecipient`，实际销毁量为 `Quantity - burnFee`。
-  - 参数：`Quantity`（必须，十进制字符串）；`Recipient` 或 `X-Recipient`（可选，不传则默认 `from`）。
-  - 校验：`Quantity >= burnFee`；地址通过 ID 校验；余额充足。
-  - 返回：一条 `Burn-Notice`，Tags：`Sender`, `X-Recipient`, `Quantity`（=销毁净额），`Ticker`, `TokenId`, `Fee`, `FeeRecipient`。
-  - 缓存：更新 `totalSupply`（减去净额）与缓存（`from`、`feeRecipient`）。
+  - 从调用者销毁 `Quantity`；`burnFee` 转移给 `feeRecipient`。净销毁量 = `Quantity - burnFee`
+  - 参数：`Quantity`（必需，十进制字符串）；`Recipient` 或 `X-Recipient`（可选；默认为 `from`）
+  - 验证：`Quantity >= burnFee`；地址通过 ID 检查；足够余额
+  - 返回：一个 `Burn-Notice`，标签包括 `Sender`、`X-Recipient`、`Quantity`（=净销毁量）、`Ticker`、`TokenId`、`Fee`、`FeeRecipient`
+  - 缓存：更新 `totalSupply`（减去净销毁量）和 `from`、`feeRecipient` 的缓存
+  - **特殊说明**：销毁通知消息会发送到 `BurnProcessor` 指定的地址
 
-### 缓存键（通过 Hymx 节点 HTTP 暴露）
+### 缓存键（通过 Hymx 节点 HTTP）
 
 #### 基础代币缓存键
-- `TokenInfo`：字符串化 JSON，包含 `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`。
-- `TotalSupply`：总供应量字符串。
-- `Balances`：字符串化 JSON（地址->余额字符串）。
-- `Balances:<Account>`：某账户余额字符串。
+- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner` 的 JSON 字符串
+- `TotalSupply`：总供应量字符串
+- `Balances:<Account>`：账户余额字符串
 
 #### 跨链代币缓存键
-- `TokenInfo`：字符串化 JSON，包含 `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`。
-- `TotalSupply`：总供应量字符串。
-- `Balances`：字符串化 JSON（地址->余额字符串）。
-- `Balances:<Account>`：某账户余额字符串。
+- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner`、`BurnFee`、`FeeRecipient`、`BurnProcessor` 的 JSON 字符串
+- `TotalSupply`：总供应量字符串
+- `Balances:<Account>`：账户余额字符串
 
-读取示例（见 `example/vmtoken_test.go`）：
-```go
-// get token info and balance from cache
-func Test_Cache_Token_Info(t *testing.T) {
-    res, err := getCacheData(hymxUrl, tokenPid, "TokenInfo")
-    assert.NoError(t, err)
-    t.Log(res)
-}
+### 使用示例
 
-func Test_Cache_Balances(t *testing.T) {
-    res, err := getCacheData(hymxUrl, tokenPid, "Balances")
-    assert.NoError(t, err)
-    t.Log(res)
-}
-```
-
-## 运行服务（CLI）
-
-### 配置示例（`cmd/config.yaml`）
-- port: 监听地址，如 `:8080`
-- ginMode: `debug` 或 `release`
-- redisURL: Redis 连接字符串
-- arweaveURL: Arweave 网关
-- hymxURL: Hymx 节点 RPC（SDK 用于发送消息）
-- prvKey: EVM 私钥（可选；替代 `keyfilePath`）
-- keyfilePath: Arweave 密钥文件路径
-- nodeName/nodeDesc/nodeURL: 节点元数据
-- joinNetwork: 是否加入 Hymx 网络
-
-### 启动命令
-```bash
-# 前台运行
-go build -o hymx ./cmd && ./hymx --config ./cmd/config.yaml
-
-# 守护进程模式
-./hymx start --config ./cmd/config.yaml
-
-# 停止守护进程
-./hymx stop
-```
-
-服务启动后会：
-- 用提供的钱包构造 Bundler；
-- 挂载两种代币类型：`hymx.basic.token.0.0.1` 到 `SpawnBasicToken` 和 `hymx.crosschain.token.0.0.1` 到 `SpawnCrossChainToken`；
-- 提供缓存读取接口 `/cache/<pid>/<key>`。
-
-## 使用 SDK
-
-### 生成基础代币
+#### 生成基础代币
 ```go
 res, err := hySdk.SpawnAndWait(
-    "hymx.basic.token.0.0.1",    // 基础代币的模块格式
+    BASIC_MODULE,    // 通过 Utils 中 module.go 生成的 基础代币的模块 Id
     SCHEDULER,                    // 调度器 AccId（通常是本节点地址）
     []goarSchema.Tag{
         {Name: "Name", Value: "基础代币"},
@@ -180,22 +139,25 @@ res, err := hySdk.SpawnAndWait(
 tokenPid := res.Id
 ```
 
-### 生成跨链代币
+#### 生成跨链代币
 ```go
 res, err := hySdk.SpawnAndWait(
-    "hymx.crosschain.token.0.0.1", // 跨链代币的模块格式
+    CROSSCHAIN_MODULE, // 通过 Utils 中 module.go 生成的跨链代币的模块 Id
     SCHEDULER,                      // 调度器 AccId（通常是本节点地址）
     []goarSchema.Tag{
         {Name: "Name", Value: "跨链代币"},
         {Name: "Ticker", Value: "ccToken"},
         {Name: "Decimals", Value: "18"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "BurnFee", Value: "100"},           // 销毁手续费
+        {Name: "FeeRecipient", Value: "0x..."},    // 手续费接收者
+        {Name: "BurnProcessor", Value: "0x..."},   // 销毁处理器
     },
 )
 tokenPid := res.Id
 ```
 
-### 查询信息和余额
+#### 查询信息和余额
 ```go
 // 信息查询
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Info"}})
@@ -210,7 +172,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 })
 ```
 
-### 转账、增发、销毁
+#### 转账、增发、销毁
 ```go
 // 转账
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
@@ -222,7 +184,7 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 // 增发（仅限 mintOwner）
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Mint"},
-    {Name: "Recipient", Value: hySdk.GetAddress()},
+    {Name: "Recipient", Value: "0x... 或 ar..."},
     {Name: "Quantity", Value: "50000000"},
 })
 
@@ -234,13 +196,13 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 })
 ```
 
-### 更新参数（仅限 owner）
+#### 更新参数（仅限 owner）
 ```go
 // 基础代币参数
 _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Set-Params"},
     {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
-    {Name: "Name", Value: "新名称"},
+    {Name: "Name", Value: "NewName"},
 })
 
 // 跨链代币参数（包含销毁相关参数）
@@ -249,14 +211,15 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
     {Name: "BurnFee", Value: "10"},        // 销毁手续费（仅跨链代币）
     {Name: "FeeRecipient", Value: "0x..."}, // 手续费接收者（仅跨链代币）
-    {Name: "Name", Value: "新名称"},
+    {Name: "BurnProcessor", Value: "0x..."}, // 销毁处理器（仅跨链代币）
+    {Name: "Name", Value: "NewName"},
 })
 ```
 
 ## 地址和数量规则
-- 地址：`Recipient/Target` 支持 EVM 或 Arweave 地址；内部通过 `IDCheck` 标准化。
-- 数量：所有数量都是表示为十进制字符串的大整数。
-- 销毁：要求 `Quantity >= BurnFee`，否则返回 `err_incorrect_quantity`。
+- 地址：`Recipient/Target` 支持 EVM 或 Arweave 地址；内部通过 `IDCheck` 标准化
+- 数量：所有数量都是表示为十进制字符串的大整数
+- 销毁：要求 `Quantity >= BurnFee`，否则返回 `err_incorrect_quantity`
 
 ## 代币类型选择指南
 
@@ -270,19 +233,18 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
 - 您需要销毁功能用于跨链操作
 - 您想要实现代币桥接或跨链结算
 - 您需要销毁手续费和手续费接收者
+- 您需要自定义销毁处理器
 - 您在构建跨链应用
 
-## 示例和测试
-- 见 `example/vmtoken_test.go` 获取从生成到动作调用和缓存读取的完整端到端示例。
-- 示例模块 ID 在 `cmd/mod/*.json` 下提供。您的环境可能不同；请使用您实际部署的 ID。
+## 测试示例
+- 参见 `example/basic_token_test.go` 了解基础代币的完整端到端测试
+- 参见 `example/crosschain_token_test.go` 了解跨链代币的完整端到端测试
+- 示例模块 ID 在 `cmd/mod/*.json` 下提供。您的环境可能不同；使用您实际部署的 ID
 
 ## 开发和构建
 ```bash
 go mod tidy
 go build -o hymx ./cmd
 ```
-
-## 许可证
-见仓库中的 `LICENSE`。
 
 
