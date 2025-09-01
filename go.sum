@@ -160,8 +160,8 @@ github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T
 github.com/holiman/uint256 v1.3.1 h1:JfTzmih28bittyHM8z360dCjIA9dbPIBlcTI6lmctQs=
 github.com/holiman/uint256 v1.3.1/go.mod h1:EOMSn4q6Nyt9P6efbI3bueV4e1b3dGlUCXeiRV4ng7E=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
-github.com/hymatrix/hymx v0.1.2 h1:WkXI2Gjr4OzL+kOStuSuJRk6QRKB88JtHWbLUzds9Xg=
-github.com/hymatrix/hymx v0.1.2/go.mod h1:wBXx0GTkGHpyfsgYN52kbwl2R2m1vFtthREDCz6nRw4=
+github.com/hymatrix/hymx v0.1.3 h1:QwcLD5kv1VCZ20z13LT7URtyiruv//DElZa5v26Ks6I=
+github.com/hymatrix/hymx v0.1.3/go.mod h1:wBXx0GTkGHpyfsgYN52kbwl2R2m1vFtthREDCz6nRw4=
 github.com/inconshreveable/log15 v2.16.0+incompatible h1:6nvMKxtGcpgm7q0KiGs+Vc+xDvUXaBqsPKHWKsinccw=
 github.com/inconshreveable/log15 v2.16.0+incompatible/go.mod h1:cOaXtrgN4ScfRrD9Bre7U1thNq5RtJ8ZoP4iXVGRj6o=
 github.com/jarcoal/httpmock v1.0.6 h1:e81vOSexXU3mJuJ4l//geOmKIt+Vkxerk1feQBC8D0g=
