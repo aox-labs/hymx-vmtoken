@@ -14,7 +14,9 @@ import (
 var (
 	BASIC_MODULE = "9bQh650l10NZ7GHUvj1L_kIIiivp9Zj7kJNY3CLEcRM" // Basic token module format
 	SCHEDULER    = "0x972AeD684D6f817e1b58AF70933dF1b4a75bfA51"  // local hymx node accId
-	hymxUrl      = "http://127.0.0.1:8080"                       // local hymx node rpc
+	// SCHEDULER = "0xCD1Ef67a57a7c03BFB05F175Be10e3eC79821138" // permadao node accId
+	hymxUrl = "http://127.0.0.1:8080" // local hymx node rpc
+	// hymxUrl = "https://hymx.permadao.io" // local hymx node rpc
 
 	testArKeyFile = "./test-keyfile.json" // generate cmd: npx -y @permaweb/wallet > test-keyfile.json
 	hySdk         = sdk.New(hymxUrl, testArKeyFile)

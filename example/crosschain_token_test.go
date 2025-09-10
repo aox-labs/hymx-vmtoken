@@ -17,20 +17,20 @@ func Test_CrossChain_Token_Spawn(t *testing.T) {
 		CROSSCHAIN_MODULE,
 		SCHEDULER,
 		[]goarSchema.Tag{
-			{Name: "Name", Value: "Cross-Chain Token"},
-			{Name: "Ticker", Value: "ccToken"},
-			{Name: "Decimals", Value: "18"},
+			{Name: "Name", Value: "ethereum test USDC"},
+			{Name: "Ticker", Value: "ethUSDC"},
+			{Name: "Decimals", Value: "6"},
 			{Name: "Logo", Value: "UkS-mdoiG8hcAClhKK8ch4ZhEzla0mCPDOix9hpdSFE"},
-			{Name: "MintOwner", Value: "0xf4FfBA30E4A427E4c743A9142dEDba284487c75F"},      // Custom mint owner
+			{Name: "MintOwner", Value: "N-f6SD01hUFW22OBMy4Yy7EB2CF3Jrb_JOm7arVdaNc"},     // Custom mint owner
 			{Name: "BurnFee", Value: "100"},                                               // Cross-chain specific: burn fee
-			{Name: "FeeRecipient", Value: "0xf4FfBA30E4A427E4c743A9142dEDba284487c75F"},   // Cross-chain specific: fee recipient
-			{Name: "BurnProcessor", Value: "MysFttDUI1YJKcFwYIyqVWGfFGnetcCp_5TGjdhVgS4"}, // Cross-chain specific: burn processor
+			{Name: "FeeRecipient", Value: "0x4002ED1a1410aF1b4930cF6c479ae373dEbD6223"},   // Cross-chain specific: fee recipient
+			{Name: "BurnProcessor", Value: "N-f6SD01hUFW22OBMy4Yy7EB2CF3Jrb_JOm7arVdaNc"}, // Cross-chain specific: burn processor
 		})
 	assert.NoError(t, err)
 	t.Log("Cross-chain token PID: ", res.Id)
 }
 
-var crosschainTokenPid = "Ix2df23IjisdYxrTO7xrWgM0hwCU9DPgvjZPZrx1DF4" // copy Test_CrossChain_Token_Spawn result tokenPid
+var crosschainTokenPid = "pOFiw3nxLzRbaK6n2LVhDoNbzQfoPffGAq7kSN-05C4" // copy Test_CrossChain_Token_Spawn result tokenPid
 
 // ===== Basic Token Functionality Tests (same as basic_token_test.go) =====
 
