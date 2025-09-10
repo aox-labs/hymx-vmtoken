@@ -28,6 +28,7 @@ type BasicToken struct {
 
 // NewBasicToken creates a new basic token VM
 func NewBasicToken(info schema.Info, owner string, mintOwner string) *BasicToken {
+	_, mintOwner, _ = utils.IDCheck(mintOwner)
 	return &BasicToken{
 		InitialSync: false,
 		Info:        info,
@@ -221,11 +222,23 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 	}
 
 	if meta.Params["Owner"] != "" {
-		v.Owner = meta.Params["Owner"]
+		newOwner := meta.Params["Owner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidOwner
+			return
+		}
+		v.Owner = newOwner
 	}
 
 	if meta.Params["MintOwner"] != "" {
-		v.MintOwner = meta.Params["MintOwner"]
+		newOwner := meta.Params["MintOwner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidMintOwner
+			return
+		}
+		v.MintOwner = newOwner
 	}
 
 	if meta.Params["Name"] != "" {
@@ -279,8 +292,13 @@ func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res
 	accountId := from
 	if recipient, exists := params["Recipient"]; exists && recipient != "" {
 		accountId = recipient
-	} else if target, exists := params["Target"]; exists && target != "" {
+	} else if target, ok := params["Target"]; ok && target != "" {
 		accountId = target
+	}
+	_, accountId, err = utils.IDCheck(accountId)
+	if err != nil {
+		err = schema.ErrInvalidRecipient
+		return
 	}
 
 	balance := v.BalanceOf(accountId)
@@ -322,10 +340,22 @@ func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]strin
 		}
 	}()
 
+	_, from, err = utils.IDCheck(from)
+	if err != nil {
+		err = schema.ErrInvalidFrom
+		return
+	}
+
 	// Parse and validate recipient
 	recipient, exists := params["Recipient"]
 	if !exists {
 		err = schema.ErrMissingRecipient
+		return
+	}
+
+	_, recipient, err = utils.IDCheck(recipient)
+	if err != nil {
+		err = schema.ErrInvalidRecipient
 		return
 	}
 
@@ -421,6 +451,11 @@ func (v *BasicToken) HandleMint(from string, params map[string]string) (res *vmm
 	recipient, exists := params["Recipient"]
 	if !exists {
 		err = schema.ErrMissingRecipient
+		return
+	}
+	_, recipient, err = utils.IDCheck(recipient)
+	if err != nil {
+		err = schema.ErrInvalidRecipient
 		return
 	}
 
@@ -528,8 +563,11 @@ func (v *BasicToken) Sub(accId string, amount *big.Int) error {
 
 	// Calculate new balance and update
 	newBalance := new(big.Int).Sub(currentBalance, amount)
-	v.Balances[accId] = newBalance
-
+	if newBalance.Cmp(big.NewInt(0)) == 0 {
+		delete(v.Balances, accId)
+	} else {
+		v.Balances[accId] = newBalance
+	}
 	return nil
 }
 

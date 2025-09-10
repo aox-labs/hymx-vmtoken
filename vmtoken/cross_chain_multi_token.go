@@ -289,11 +289,23 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 
 	// Handle base token parameters
 	if meta.Params["Owner"] != "" {
-		v.Owner = meta.Params["Owner"]
+		newOwner := meta.Params["Owner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidOwner
+			return
+		}
+		v.Owner = newOwner
 	}
 
 	if meta.Params["MintOwner"] != "" {
-		v.MintOwner = meta.Params["MintOwner"]
+		newOwner := meta.Params["MintOwner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidMintOwner
+			return
+		}
+		v.MintOwner = newOwner
 	}
 
 	if meta.Params["Name"] != "" {
@@ -313,7 +325,13 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 	}
 
 	// Handle multi-chain specific parameters
-	if feeRecipient, exists := meta.Params["FeeRecipient"]; exists && feeRecipient != "" {
+	if meta.Params["FeeRecipient"] != "" {
+		feeRecipient := meta.Params["FeeRecipient"]
+		_, feeRecipient, err = utils.IDCheck(feeRecipient)
+		if err != nil {
+			err = schema.ErrInvalidFeeRecipient
+			return
+		}
 		v.FeeRecipient = feeRecipient
 	}
 
@@ -329,13 +347,14 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 		}
 	}
 
-	if burnProcessorStr, exists := meta.Params["BurnProcessor"]; exists && burnProcessorStr != "" {
-		var accId string
-		_, accId, err = utils.IDCheck(burnProcessorStr)
+	if meta.Params["BurnProcessor"] != "" {
+		burnProcessor := meta.Params["BurnProcessor"]
+		_, burnProcessor, err = utils.IDCheck(burnProcessor)
 		if err != nil {
+			err = schema.ErrInvalidBurnProcessor
 			return
 		}
-		v.BurnProcessor = accId
+		v.BurnProcessor = burnProcessor
 	}
 
 	res = &vmmSchema.Result{
@@ -386,6 +405,12 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 		return
 	}
 
+	_, recipient, err = utils.IDCheck(recipient)
+	if err != nil {
+		err = schema.ErrInvalidRecipient
+		return
+	}
+
 	// Parse and validate quantity
 	quantity, exists := params["Quantity"]
 	if !exists {
@@ -409,6 +434,12 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 	sourceTokenId := params["SourceTokenId"]
 	if sourceTokenId == "" {
 		err = schema.ErrMissingSourceTokenId
+		return
+	}
+
+	_, sourceTokenId, err = utils.IDCheck(sourceTokenId)
+	if err != nil {
+		err = schema.ErrInvalidSourceTokenId
 		return
 	}
 
@@ -504,8 +535,9 @@ func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[stri
 	}
 
 	// Validate recipient address
-	_, _, err = utils.IDCheck(recipient)
+	_, recipient, err = utils.IDCheck(recipient)
 	if err != nil {
+		err = schema.ErrInvalidRecipient
 		return
 	}
 
@@ -526,6 +558,12 @@ func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[stri
 	targetTokenId := params["TargetTokenId"]
 	if targetTokenId == "" {
 		err = schema.ErrMissingTargetTokenId
+		return
+	}
+
+	_, targetTokenId, err = utils.IDCheck(targetTokenId)
+	if err != nil {
+		err = schema.ErrInvalidTargetTokenId
 		return
 	}
 

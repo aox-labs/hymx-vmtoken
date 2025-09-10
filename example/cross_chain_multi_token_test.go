@@ -2,6 +2,7 @@ package example
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/aox-labs/hymx-vmtoken/vmtoken"
@@ -23,10 +24,10 @@ func TestCrossChainMultiToken(t *testing.T) {
 				"Ticker":        "mUSD",
 				"Decimals":      "6",
 				"Logo":          "https://example.com/musd-logo.png",
-				"BurnFees":      `{"ethereum":"500000","bsc":"40000","polygon":"30000"}`,
-				"FeeRecipient":  "fee-recipient-address",
-				"BurnProcessor": "burn-processor-address",
-				"MintOwner":     "mint-owner-address",
+				"BurnFees":      `{"ethereum":"500000","bsc":"40000"}`,
+				"FeeRecipient":  "0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766",
+				"BurnProcessor": "0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766",
+				"MintOwner":     "0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766",
 			},
 		},
 	}
@@ -47,98 +48,45 @@ func TestCrossChainMultiToken(t *testing.T) {
 	// User A cross-chains 100 USDC from Ethereum
 	fmt.Println("User A cross-chains 100 USDC from Ethereum...")
 	mintParams := map[string]string{
-		"Recipient":       "user-a-address",
+		"Recipient":       "0xa7ae99c13d82dd32fc6445ec09e38d197335f38a",
 		"Quantity":        "100000000", // 100 USDC (6 decimals)
 		"SourceChainType": "ethereum",
-		"SourceTokenId":   "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+		"SourceTokenId":   "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 		"X-MintTxHash":    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 	}
 
-	result, err := multiToken.HandleCrossChainMint("mint-owner-address", mintParams)
-	if err != nil {
-		fmt.Printf("Cross-chain Mint failed: %v\n", err)
-	} else {
-		fmt.Println("Cross-chain Mint successful!")
-		for _, msg := range result.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
-	}
+	result, err := multiToken.HandleCrossChainMint("0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766", mintParams)
+	assert.NoError(t, err)
+	assert.Equal(t, "", result.Error)
+	t.Log(result.Messages[0])
+	t.Log("Balances: ", multiToken.Balances)
 
-	// User B cross-chains 500 USDT from BSC
-	fmt.Println("\nUser B cross-chains 500 USDT from BSC...")
-	mintParams2 := map[string]string{
-		"Recipient":       "user-b-address",
-		"Quantity":        "500000000", // 500 USDT (6 decimals)
-		"SourceChainType": "bsc",
-		"SourceTokenId":   "usdt-bsc-0x55d398326f99059ff775485246999027b3197955",
-		"X-MintTxHash":    "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-	}
-
-	result2, err := multiToken.HandleCrossChainMint("mint-owner-address", mintParams2)
-	if err != nil {
-		fmt.Printf("Cross-chain Mint failed: %v\n", err)
-	} else {
-		fmt.Println("Cross-chain Mint successful!")
-		for _, msg := range result2.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
-	}
-
-	// User A transfers 50 mUSD to User C
-	fmt.Println("\n=== User A transfers 50 mUSD to User C ===")
 	transferParams := map[string]string{
-		"Recipient": "user-c-address",
+		"Recipient": "FyINHRSrHW0teUhvJzd6R33Tl50qxLnSj8LJCP5puiI",
 		"Quantity":  "50000000", // 50 mUSD (6 decimals)
 	}
 
-	transferResult, err := multiToken.HandleTransfer("tx-id-1", "user-a-address", transferParams)
-	if err != nil {
-		fmt.Printf("Transfer failed: %v\n", err)
-	} else {
-		fmt.Println("Transfer successful!")
-		for _, msg := range transferResult.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
-	}
+	transferResult, err := multiToken.HandleTransfer("tx-id-1", "0xa7ae99c13d82dd32fc6445ec09e38d197335f38a", transferParams)
+	assert.NoError(t, err)
+	assert.Equal(t, "", transferResult.Error)
+	t.Log(transferResult.Messages[0])
+
+	t.Log("Balances: ", multiToken.Balances)
 
 	// User C attempts to withdraw to BSC (should succeed)
-	fmt.Println("\n=== User C withdraws to BSC ===")
 	burnParams := map[string]string{
-		"Recipient":     "user-c-bsc-address",
+		"Recipient":     "0xb3f2f559fe40c1f1ea1e941e982d9467208e17ae",
 		"Quantity":      "50000000", // 50 mUSD
-		"TargetTokenId": "usdt-bsc-0x55d398326f99059ff775485246999027b3197955",
+		"TargetTokenId": "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 	}
 
-	burnResult, err := multiToken.HandleCrossChainBurn("user-c-address", burnParams)
-	if err != nil {
-		fmt.Printf("Withdrawal failed: %v\n", err)
-	} else {
-		fmt.Println("Withdrawal successful!")
-		for _, msg := range burnResult.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
-	}
+	burnResult, err := multiToken.HandleCrossChainBurn("FyINHRSrHW0teUhvJzd6R33Tl50qxLnSj8LJCP5puiI", burnParams)
+	assert.NoError(t, err)
+	assert.Equal(t, "", burnResult.Error)
+	t.Log(burnResult.Messages[0])
 
-	// User B attempts to withdraw to Ethereum (should succeed)
-	fmt.Println("\n=== User B withdraws to Ethereum ===")
-	burnParams2 := map[string]string{
-		"Recipient":     "user-b-ethereum-address",
-		"Quantity":      "200000000", // 200 mUSD
-		"TargetTokenId": "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
-	}
+	t.Log("Balances: ", multiToken.Balances)
 
-	burnResult2, err := multiToken.HandleCrossChainBurn("user-b-address", burnParams2)
-	if err != nil {
-		fmt.Printf("Withdrawal failed: %v\n", err)
-	} else {
-		fmt.Println("Withdrawal successful!")
-		for _, msg := range burnResult2.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
-	}
-
-	// Test error case: attempt to withdraw to non-existent token
-	fmt.Println("\n=== Testing Error Case: Withdraw to Non-existent Token ===")
 	burnParams3 := map[string]string{
 		"Recipient":     "user-a-address",
 		"Quantity":      "10000000", // 10 mUSD

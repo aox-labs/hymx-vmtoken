@@ -53,33 +53,33 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	// Parse and validate FeeRecipient with default value
-	feeRecipientStr := env.Meta.Params["FeeRecipient"]
-	if feeRecipientStr == "" {
-		feeRecipientStr = env.AccId // Default to owner
+	feeRecipient := env.Meta.Params["FeeRecipient"]
+	if feeRecipient == "" {
+		feeRecipient = env.AccId // Default to owner
 	}
-	_, feeRecipient, err := utils.IDCheck(feeRecipientStr)
+	_, feeRecipient, err = utils.IDCheck(feeRecipient)
 	if err != nil {
 		err = schema.ErrInvalidFeeRecipient
 		return
 	}
 
 	// Parse and validate MintOwner with default value
-	mintOwnerStr := env.Meta.Params["MintOwner"]
-	if mintOwnerStr == "" {
-		mintOwnerStr = env.AccId // Default to owner
+	mintOwner := env.Meta.Params["MintOwner"]
+	if mintOwner == "" {
+		mintOwner = env.AccId // Default to owner
 	}
-	_, mintOwner, err := utils.IDCheck(mintOwnerStr)
+	_, mintOwner, err = utils.IDCheck(mintOwner)
 	if err != nil {
 		err = schema.ErrInvalidMintOwner
 		return
 	}
 
 	// Parse and validate BurnProcessor with default value
-	burnProcessorStr := env.Meta.Params["BurnProcessor"]
-	if burnProcessorStr == "" {
-		burnProcessorStr = env.AccId // Default to owner
+	burnProcessor := env.Meta.Params["BurnProcessor"]
+	if burnProcessor == "" {
+		burnProcessor = env.AccId // Default to owner
 	}
-	_, burnProcessor, err := utils.IDCheck(burnProcessorStr)
+	_, burnProcessor, err = utils.IDCheck(burnProcessor)
 	if err != nil {
 		err = schema.ErrInvalidFeeRecipient // Reuse error type for now
 		return
@@ -257,11 +257,23 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 
 	// Handle base token parameters
 	if meta.Params["Owner"] != "" {
-		v.Owner = meta.Params["Owner"]
+		newOwner := meta.Params["Owner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidOwner
+			return
+		}
+		v.Owner = newOwner
 	}
 
 	if meta.Params["MintOwner"] != "" {
-		v.MintOwner = meta.Params["MintOwner"]
+		newOwner := meta.Params["MintOwner"]
+		_, newOwner, err = utils.IDCheck(newOwner)
+		if err != nil {
+			err = schema.ErrInvalidMintOwner
+			return
+		}
+		v.MintOwner = newOwner
 	}
 
 	if meta.Params["Name"] != "" {
@@ -281,7 +293,13 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 	}
 
 	// Handle cross-chain specific parameters
-	if feeRecipient, exists := meta.Params["FeeRecipient"]; exists && feeRecipient != "" {
+	if meta.Params["FeeRecipient"] != "" {
+		feeRecipient := meta.Params["FeeRecipient"]
+		_, feeRecipient, err = utils.IDCheck(feeRecipient)
+		if err != nil {
+			err = schema.ErrInvalidFeeRecipient
+			return
+		}
 		v.FeeRecipient = feeRecipient
 	}
 
@@ -291,12 +309,14 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 		}
 	}
 
-	if burnProcessorStr, exists := meta.Params["BurnProcessor"]; exists && burnProcessorStr != "" {
-		_, accId, err := utils.IDCheck(burnProcessorStr)
+	if meta.Params["BurnProcessor"] != "" {
+		burnProcessor := meta.Params["BurnProcessor"]
+		_, burnProcessor, err = utils.IDCheck(burnProcessor)
 		if err != nil {
+			err = schema.ErrInvalidBurnProcessor
 			return
 		}
-		v.BurnProcessor = accId
+		v.BurnProcessor = burnProcessor
 	}
 
 	res = &vmmSchema.Result{
@@ -344,8 +364,9 @@ func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res
 	}
 
 	// Validate recipient address
-	_, _, err = utils.IDCheck(recipient)
+	_, recipient, err = utils.IDCheck(recipient)
 	if err != nil {
+		err = schema.ErrInvalidRecipient
 		return
 	}
 

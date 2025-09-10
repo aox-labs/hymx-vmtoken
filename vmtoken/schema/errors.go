@@ -12,7 +12,13 @@ var (
 	ErrIncorrectTokenInfo    = errors.New("err_incorrect_token_info")
 	ErrUnsupportedAction     = errors.New("err_unsupported_action")
 	ErrInvalidFeeRecipient   = errors.New("err_invalid_fee_recipient")
+	ErrInvalidRecipient      = errors.New("err_invalid_recipient")
+	ErrInvalidFrom           = errors.New("err_invalid_from")
+	ErrInvalidBurnProcessor  = errors.New("err_invalid_burn_processor")
 	ErrInvalidMintOwner      = errors.New("err_invalid_mint_owner")
+	ErrInvalidOwner          = errors.New("err_invalid_owner")
+	ErrInvalidSourceTokenId  = errors.New("err_invalid_source_token_id")
+	ErrInvalidTargetTokenId  = errors.New("err_invalid_target_token_id")
 
 	// Multi-chain specific errors
 	ErrMissingSourceChain       = errors.New("err_missing_source_chain")
