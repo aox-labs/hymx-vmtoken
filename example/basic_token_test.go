@@ -33,6 +33,8 @@ func Test_Basic_Token_Spawn(t *testing.T) {
 			{Name: "Decimals", Value: "12"},
 			{Name: "Logo", Value: "UkS-mdoiG8hcAClhKK8ch4ZhEzla0mCPDOix9hpdSFE"},
 			{Name: "MintOwner", Value: hySdk.GetAddress()}, // Custom mint owner
+			{Name: "MaxSupply", Value: "100000000000000000000"},
+			{Name: "Description", Value: "website: https://abc.com"},
 		})
 	assert.NoError(t, err)
 	t.Log("Basic token PID: ", res.Id)

@@ -9,11 +9,12 @@ const (
 )
 
 type Info struct {
-	Id       string
-	Name     string
-	Ticker   string
-	Decimals string
-	Logo     string
+	Id          string
+	Name        string
+	Ticker      string
+	Decimals    string
+	Logo        string
+	Description string
 }
 
 // BasicSnapshot represents a snapshot of a basic token without Burn functionality

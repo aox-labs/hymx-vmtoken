@@ -20,6 +20,7 @@ type BasicToken struct {
 	InitialSync bool
 	Info        schema.Info
 
+	MaxSupply   *big.Int
 	TotalSupply *big.Int
 	Balances    map[string]*big.Int
 	Owner       string
@@ -27,11 +28,12 @@ type BasicToken struct {
 }
 
 // NewBasicToken creates a new basic token VM
-func NewBasicToken(info schema.Info, owner string, mintOwner string) *BasicToken {
+func NewBasicToken(info schema.Info, owner string, mintOwner string, maxSupply *big.Int) *BasicToken {
 	_, mintOwner, _ = utils.IDCheck(mintOwner)
 	return &BasicToken{
 		InitialSync: false,
 		Info:        info,
+		MaxSupply:   maxSupply,
 		TotalSupply: big.NewInt(0),
 		Balances:    map[string]*big.Int{},
 		Owner:       owner,
@@ -60,14 +62,24 @@ func SpawnBasicToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 		err = schema.ErrInvalidMintOwner // Reuse error type for now
 		return
 	}
+	maxSupplyStr := env.Meta.Params["MaxSupply"]
+	if mintOwnerStr == "" {
+		mintOwnerStr = "0"
+	}
+	maxSupply, ok := new(big.Int).SetString(maxSupplyStr, 10)
+	if !ok {
+		err = schema.ErrInvalidMaxSupply // Reuse error type for now
+		return
+	}
 
 	vm = NewBasicToken(schema.Info{
-		Id:       env.Id,
-		Name:     env.Meta.Params["Name"],
-		Ticker:   env.Meta.Params["Ticker"],
-		Decimals: env.Meta.Params["Decimals"],
-		Logo:     env.Meta.Params["Logo"],
-	}, env.AccId, mintOwner)
+		Id:          env.Id,
+		Name:        env.Meta.Params["Name"],
+		Ticker:      env.Meta.Params["Ticker"],
+		Decimals:    env.Meta.Params["Decimals"],
+		Logo:        env.Meta.Params["Logo"],
+		Description: env.Meta.Params["Description"],
+	}, env.AccId, mintOwner, maxSupply)
 
 	return vm, nil
 }
@@ -78,8 +90,10 @@ func (v *BasicToken) CacheTokenInfo() map[string]string {
 		"Ticker":       v.Info.Ticker,
 		"Logo":         v.Info.Logo,
 		"Denomination": v.Info.Decimals,
+		"Description":  v.Info.Description,
 		"Owner":        v.Owner,
 		"MintOwner":    v.MintOwner,
+		"MaxSupply":    v.MaxSupply.String(),
 	}
 	res, _ := json.Marshal(tokenInfo)
 	return map[string]string{
@@ -255,6 +269,9 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 
 	if meta.Params["Logo"] != "" {
 		v.Info.Logo = meta.Params["Logo"]
+	}
+	if meta.Params["Description"] != "" {
+		v.Info.Description = meta.Params["Description"]
 	}
 
 	res = &vmmSchema.Result{
@@ -470,6 +487,13 @@ func (v *BasicToken) HandleMint(from string, params map[string]string) (res *vmm
 	if !ok {
 		err = schema.ErrInvalidQuantityFormat
 		return
+	}
+
+	if v.MaxSupply != nil && v.MaxSupply.Cmp(big.NewInt(0)) > 0 {
+		if big.NewInt(0).Add(v.TotalSupply, amount).Cmp(v.MaxSupply) > 0 {
+			err = schema.ErrInsufficientMaxSupply
+			return
+		}
 	}
 
 	// Execute mint operation

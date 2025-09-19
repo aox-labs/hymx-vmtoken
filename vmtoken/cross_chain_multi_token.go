@@ -26,7 +26,7 @@ type CrossChainMultiToken struct {
 // NewCrossChainMultiToken creates a new cross-chain multi-token VM
 func NewCrossChainMultiToken(info schema.Info, owner string, mintOwner string, burnFees map[string]*big.Int, feeRecipient string, burnProcessor string) *CrossChainMultiToken {
 	return &CrossChainMultiToken{
-		BasicToken:        NewBasicToken(info, owner, mintOwner),
+		BasicToken:        NewBasicToken(info, owner, mintOwner, big.NewInt(0)),
 		SourceTokenChains: make(map[string]string),
 		SourceLockAmounts: make(map[string]*big.Int),
 		BurnFees:          burnFees,
@@ -96,11 +96,12 @@ func SpawnCrossChainMultiToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	vm = NewCrossChainMultiToken(schema.Info{
-		Id:       env.Id,
-		Name:     env.Meta.Params["Name"],
-		Ticker:   env.Meta.Params["Ticker"],
-		Decimals: env.Meta.Params["Decimals"],
-		Logo:     env.Meta.Params["Logo"],
+		Id:          env.Id,
+		Name:        env.Meta.Params["Name"],
+		Ticker:      env.Meta.Params["Ticker"],
+		Decimals:    env.Meta.Params["Decimals"],
+		Logo:        env.Meta.Params["Logo"],
+		Description: env.Meta.Params["Description"],
 	}, env.AccId, mintOwner, burnFees, feeRecipient, burnProcessor)
 
 	return vm, nil

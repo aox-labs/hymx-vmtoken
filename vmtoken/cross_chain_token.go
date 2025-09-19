@@ -23,7 +23,7 @@ type CrossChainToken struct {
 // NewCrossChainToken creates a new cross-chain token VM
 func NewCrossChainToken(info schema.Info, owner string, mintOwner string, burnFee *big.Int, feeRecipient string, burnProcessor string) *CrossChainToken {
 	return &CrossChainToken{
-		BasicToken:    NewBasicToken(info, owner, mintOwner),
+		BasicToken:    NewBasicToken(info, owner, mintOwner, big.NewInt(0)),
 		BurnFee:       burnFee,
 		FeeRecipient:  feeRecipient,
 		BurnProcessor: burnProcessor,
@@ -86,11 +86,12 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	vm = NewCrossChainToken(schema.Info{
-		Id:       env.Id,
-		Name:     env.Meta.Params["Name"],
-		Ticker:   env.Meta.Params["Ticker"],
-		Decimals: env.Meta.Params["Decimals"],
-		Logo:     env.Meta.Params["Logo"],
+		Id:          env.Id,
+		Name:        env.Meta.Params["Name"],
+		Ticker:      env.Meta.Params["Ticker"],
+		Decimals:    env.Meta.Params["Decimals"],
+		Logo:        env.Meta.Params["Logo"],
+		Description: env.Meta.Params["Description"],
 	}, env.AccId, mintOwner, burnFee, feeRecipient, burnProcessor)
 
 	return vm, nil
