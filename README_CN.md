@@ -57,6 +57,8 @@ s.Mount("hymx.cross.chain.multi.token.0.0.1", vmtoken.SpawnCrossChainMultiToken)
 - **Ticker**: 代币符号（必填）
 - **Decimals**: 精度（必填，字符串数值）
 - **Logo**: Logo 的 Arweave 资源标识（可选）
+- **Description**: 代币描述（可选）
+- **MaxSupply**: 最大供应量（可选，十进制字符串，默认为 "0" 表示无限制）
 - **MintOwner**: 允许增发代币的账户（可选，默认为 owner）
 
 #### 跨链代币特有参数：
@@ -85,14 +87,14 @@ s.Mount("hymx.cross.chain.multi.token.0.0.1", vmtoken.SpawnCrossChainMultiToken)
 - **Info**
   - 返回基本代币信息
   - 参数：无
-  - 返回标签：`Name`、`Ticker`、`Logo`、`Denomination(=Decimals)`、`Owner`、`MintOwner`
+  - 返回标签：`Name`、`Ticker`、`Logo`、`Denomination(=Decimals)`、`Description`、`MaxSupply`、`Owner`、`MintOwner`
   - **跨链代币**：额外标签包括 `BurnFee`、`FeeRecipient`、`BurnProcessor`
   - **跨链多代币**：额外标签包括 `BurnFees`、`FeeRecipient`、`BurnProcessor`、`SourceTokenChains`、`SourceLockAmounts`
   - 首次调用时，初始化并写入缓存（见缓存键）
 
 - **Set-Params**（仅限 owner）
   - 更新代币和账户参数
-  - **基础代币**：`Owner`、`MintOwner`、`Name`、`Ticker`、`Decimals`、`Logo`
+  - **基础代币**：`Owner`、`MintOwner`、`Name`、`Ticker`、`Decimals`、`Logo`、`Description`、`MaxSupply`（十进制字符串）
   - **跨链代币**：所有基础参数 + `FeeRecipient`、`BurnFee`（十进制字符串）、`BurnProcessor`
   - **跨链多代币**：所有基础参数 + `FeeRecipient`、`BurnFees`（JSON 对象）、`BurnProcessor`
   - 返回标签：`Set-Params-Notice = success`
@@ -156,18 +158,21 @@ s.Mount("hymx.cross.chain.multi.token.0.0.1", vmtoken.SpawnCrossChainMultiToken)
 ### 缓存键（通过 Hymx 节点 HTTP）
 
 #### 基础代币缓存键
-- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner` 的 JSON 字符串
+- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Description`、`MaxSupply`、`Owner`、`MintOwner` 的 JSON 字符串
 - `TotalSupply`：总供应量字符串
+- `Balances`：完整余额映射的 JSON 字符串
 - `Balances:<Account>`：账户余额字符串
 
 #### 跨链代币缓存键
 - `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner`、`BurnFee`、`FeeRecipient`、`BurnProcessor` 的 JSON 字符串
 - `TotalSupply`：总供应量字符串
+- `Balances`：完整余额映射的 JSON 字符串
 - `Balances:<Account>`：账户余额字符串
 
 #### 跨链多代币缓存键
 - `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner`、`BurnFees`、`FeeRecipient`、`BurnProcessor`、`SourceTokenChains`、`SourceLockAmounts` 的 JSON 字符串
 - `TotalSupply`：总供应量字符串
+- `Balances`：完整余额映射的 JSON 字符串
 - `Balances:<Account>`：账户余额字符串
 
 ### 使用示例
@@ -182,6 +187,8 @@ res, err := hySdk.SpawnAndWait(
         {Name: "Ticker", Value: "bToken"},
         {Name: "Decimals", Value: "12"},
         {Name: "Logo", Value: "<arweave-txid>"},
+        {Name: "Description", Value: "这是一个基础代币示例"},
+        {Name: "MaxSupply", Value: "1000000000"}, // 最大供应量（可选）
         {Name: "MintOwner", Value: "0x..."}, // 允许增发代币的账户（可选）
     },
 )
@@ -291,6 +298,8 @@ _, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
     {Name: "Action", Value: "Set-Params"},
     {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
     {Name: "Name", Value: "NewName"},
+    {Name: "Description", Value: "更新后的代币描述"},
+    {Name: "MaxSupply", Value: "2000000000"}, // 更新最大供应量
 })
 
 // 跨链代币参数（包含销毁相关参数）

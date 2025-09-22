@@ -109,6 +109,8 @@ func (v *BasicToken) CacheBalances(updateBalances map[string]*big.Int) map[strin
 		}
 		cacheMap["Balances:"+k] = vl.String()
 	}
+	balanceBy, _ := json.Marshal(v.Balances)
+	cacheMap["Balances"] = string(balanceBy)
 	cacheMap["TotalSupply"] = v.TotalSupply.String()
 	return cacheMap
 }
