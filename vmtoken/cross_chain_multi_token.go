@@ -125,6 +125,7 @@ func (v *CrossChainMultiToken) CacheTokenInfo() map[string]string {
 		"Ticker":            v.Info.Ticker,
 		"Logo":              v.Info.Logo,
 		"Denomination":      v.Info.Decimals,
+		"Description":       v.Info.Description,
 		"Owner":             v.Owner,
 		"MintOwner":         v.MintOwner,
 		"BurnFees":          string(burnFeesJson),
@@ -182,11 +183,14 @@ func (v *CrossChainMultiToken) Checkpoint() (data string, err error) {
 			Ticker:      v.Info.Ticker,
 			Decimals:    v.Info.Decimals,
 			Logo:        v.Info.Logo,
+			Description: v.Info.Description,
 			TotalSupply: v.TotalSupply,
 			Balances:    v.Balances,
 			Owner:       v.Owner,
 			MintOwner:   v.MintOwner,
+			MaxSupply:   v.MaxSupply,
 		},
+		MintedRecords:     v.MintedRecords,
 		SourceTokenChains: v.SourceTokenChains,
 		SourceLockAmounts: v.SourceLockAmounts,
 		BurnFees:          v.BurnFees,
@@ -212,19 +216,43 @@ func (v *CrossChainMultiToken) Restore(data string) error {
 	v.Owner = snap.Owner
 	v.MintOwner = snap.MintOwner
 	v.Balances = snap.Balances
+	if v.Balances == nil {
+		v.Balances = make(map[string]*big.Int)
+	}
 	v.TotalSupply = snap.TotalSupply
+	if v.TotalSupply == nil {
+		v.TotalSupply = big.NewInt(0)
+	}
+	v.MaxSupply = snap.MaxSupply
+	if v.MaxSupply == nil {
+		v.MaxSupply = big.NewInt(0)
+	}
 	v.Info = schema.Info{
-		Id:       snap.Id,
-		Name:     snap.Name,
-		Ticker:   snap.Ticker,
-		Decimals: snap.Decimals,
-		Logo:     snap.Logo,
+		Id:          snap.Id,
+		Name:        snap.Name,
+		Ticker:      snap.Ticker,
+		Decimals:    snap.Decimals,
+		Logo:        snap.Logo,
+		Description: snap.Description,
 	}
 
 	// Restore multi-chain specific fields
+	v.MintedRecords = snap.MintedRecords
+	if v.MintedRecords == nil {
+		v.MintedRecords = make(map[string]string)
+	}
 	v.SourceTokenChains = snap.SourceTokenChains
+	if v.SourceTokenChains == nil {
+		v.SourceTokenChains = make(map[string]string)
+	}
 	v.SourceLockAmounts = snap.SourceLockAmounts
+	if v.SourceLockAmounts == nil {
+		v.SourceLockAmounts = make(map[string]*big.Int)
+	}
 	v.BurnFees = snap.BurnFees
+	if v.BurnFees == nil {
+		v.BurnFees = make(map[string]*big.Int)
+	}
 	v.FeeRecipient = snap.FeeRecipient
 	v.BurnProcessor = snap.BurnProcessor
 	return nil
@@ -243,6 +271,7 @@ func (v *CrossChainMultiToken) HandleInfo(from string) (res *vmmSchema.Result, e
 		{Name: "Ticker", Value: v.Info.Ticker},
 		{Name: "Logo", Value: v.Info.Logo},
 		{Name: "Denomination", Value: v.Info.Decimals},
+		{Name: "Description", Value: v.Info.Description},
 		{Name: "Owner", Value: v.Owner},
 		{Name: "MintOwner", Value: v.MintOwner},
 		{Name: "BurnFees", Value: string(burnFeesJson)},
@@ -325,6 +354,10 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 
 	if meta.Params["Logo"] != "" {
 		v.Info.Logo = meta.Params["Logo"]
+	}
+
+	if meta.Params["Description"] != "" {
+		v.Info.Description = meta.Params["Description"]
 	}
 
 	// Handle multi-chain specific parameters

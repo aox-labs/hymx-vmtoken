@@ -24,10 +24,12 @@ type BasicSnapshot struct {
 	Ticker      string              `json:"ticker"`
 	Decimals    string              `json:"decimals"`
 	Logo        string              `json:"logo"`
+	Description string              `json:"description"`
 	TotalSupply *big.Int            `json:"totalSupply"`
 	Balances    map[string]*big.Int `json:"balances"`
 	Owner       string              `json:"owner"`
 	MintOwner   string              `json:"mintOwner"`
+	MaxSupply   *big.Int            `json:"maxSupply"`
 }
 
 // CrossChainSnapshot extends BasicSnapshot with Burn functionality
@@ -41,6 +43,7 @@ type CrossChainSnapshot struct {
 // CrossChainMultiSnapshot extends BasicSnapshot with cross-chain multi-token functionality
 type CrossChainMultiSnapshot struct {
 	BasicSnapshot
+	MintedRecords     map[string]string   `json:"mintedRecords"`
 	SourceTokenChains map[string]string   `json:"sourceTokenChains"` // key: sourceTokenId, val: sourceChain
 	SourceLockAmounts map[string]*big.Int `json:"sourceLockAmounts"` // key: sourceChain:sourceTokenId, val: lock amount
 	BurnFees          map[string]*big.Int `json:"burnFees"`          // key: chainType, val: burn fee

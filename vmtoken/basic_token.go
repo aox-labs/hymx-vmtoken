@@ -153,10 +153,12 @@ func (v *BasicToken) Checkpoint() (data string, err error) {
 		Ticker:      v.Info.Ticker,
 		Decimals:    v.Info.Decimals,
 		Logo:        v.Info.Logo,
+		Description: v.Info.Description,
 		TotalSupply: v.TotalSupply,
 		Balances:    v.Balances,
 		Owner:       v.Owner,
 		MintOwner:   v.MintOwner,
+		MaxSupply:   v.MaxSupply,
 	}
 	by, err := json.Marshal(snap)
 	if err != nil {
@@ -175,13 +177,24 @@ func (v *BasicToken) Restore(data string) error {
 	v.Owner = snap.Owner
 	v.MintOwner = snap.MintOwner
 	v.Balances = snap.Balances
+	if v.Balances == nil {
+		v.Balances = make(map[string]*big.Int)
+	}
 	v.TotalSupply = snap.TotalSupply
+	if v.TotalSupply == nil {
+		v.TotalSupply = big.NewInt(0)
+	}
+	v.MaxSupply = snap.MaxSupply
+	if v.MaxSupply == nil {
+		v.MaxSupply = big.NewInt(0)
+	}
 	v.Info = schema.Info{
-		Id:       snap.Id,
-		Name:     snap.Name,
-		Ticker:   snap.Ticker,
-		Decimals: snap.Decimals,
-		Logo:     snap.Logo,
+		Id:          snap.Id,
+		Name:        snap.Name,
+		Ticker:      snap.Ticker,
+		Decimals:    snap.Decimals,
+		Logo:        snap.Logo,
+		Description: snap.Description,
 	}
 	return nil
 }
@@ -273,6 +286,7 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 	if meta.Params["Logo"] != "" {
 		v.Info.Logo = meta.Params["Logo"]
 	}
+
 	if meta.Params["Description"] != "" {
 		v.Info.Description = meta.Params["Description"]
 	}

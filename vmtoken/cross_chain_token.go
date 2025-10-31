@@ -104,6 +104,7 @@ func (v *CrossChainToken) CacheTokenInfo() map[string]string {
 		"Ticker":        v.Info.Ticker,
 		"Logo":          v.Info.Logo,
 		"Denomination":  v.Info.Decimals,
+		"Description":   v.Info.Description,
 		"Owner":         v.Owner,
 		"MintOwner":     v.MintOwner,
 		"BurnFee":       v.BurnFee.String(),
@@ -159,10 +160,12 @@ func (v *CrossChainToken) Checkpoint() (data string, err error) {
 			Ticker:      v.Info.Ticker,
 			Decimals:    v.Info.Decimals,
 			Logo:        v.Info.Logo,
+			Description: v.Info.Description,
 			TotalSupply: v.TotalSupply,
 			Balances:    v.Balances,
 			Owner:       v.Owner,
 			MintOwner:   v.MintOwner,
+			MaxSupply:   v.MaxSupply,
 		},
 		BurnFee:       v.BurnFee,
 		FeeRecipient:  v.FeeRecipient,
@@ -187,18 +190,32 @@ func (v *CrossChainToken) Restore(data string) error {
 	v.Owner = snap.Owner
 	v.MintOwner = snap.MintOwner
 	v.Balances = snap.Balances
+	if v.Balances == nil {
+		v.Balances = make(map[string]*big.Int)
+	}
 	v.TotalSupply = snap.TotalSupply
+	if v.TotalSupply == nil {
+		v.TotalSupply = big.NewInt(0)
+	}
+	v.MaxSupply = snap.MaxSupply
+	if v.MaxSupply == nil {
+		v.MaxSupply = big.NewInt(0)
+	}
 	v.Info = schema.Info{
-		Id:       snap.Id,
-		Name:     snap.Name,
-		Ticker:   snap.Ticker,
-		Decimals: snap.Decimals,
-		Logo:     snap.Logo,
+		Id:          snap.Id,
+		Name:        snap.Name,
+		Ticker:      snap.Ticker,
+		Decimals:    snap.Decimals,
+		Logo:        snap.Logo,
+		Description: snap.Description,
 	}
 
 	// Restore cross-chain specific fields
 	v.FeeRecipient = snap.FeeRecipient
 	v.BurnFee = snap.BurnFee
+	if v.BurnFee == nil {
+		v.BurnFee = big.NewInt(0)
+	}
 	v.BurnProcessor = snap.BurnProcessor
 	return nil
 }
@@ -211,6 +228,7 @@ func (v *CrossChainToken) HandleInfo(from string) (res *vmmSchema.Result, err er
 		{Name: "Ticker", Value: v.Info.Ticker},
 		{Name: "Logo", Value: v.Info.Logo},
 		{Name: "Denomination", Value: v.Info.Decimals},
+		{Name: "Description", Value: v.Info.Description},
 		{Name: "Owner", Value: v.Owner},
 		{Name: "MintOwner", Value: v.MintOwner},
 		{Name: "BurnFee", Value: v.BurnFee.String()},
@@ -291,6 +309,10 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 
 	if meta.Params["Logo"] != "" {
 		v.Info.Logo = meta.Params["Logo"]
+	}
+
+	if meta.Params["Description"] != "" {
+		v.Info.Description = meta.Params["Description"]
 	}
 
 	// Handle cross-chain specific parameters
