@@ -7,6 +7,7 @@ var (
 	ErrMissingQuantity       = errors.New("err_missing_quantity")
 	ErrInvalidQuantityFormat = errors.New("err_invalid_quantity_format")
 	ErrIncorrectOwner        = errors.New("err_incorrect_owner")
+	ErrRepeatMint            = errors.New("err_repeat_mint")
 	ErrInsufficientBalance   = errors.New("err_insufficient_balance")
 	ErrInsufficientMaxSupply = errors.New("err_insufficient_max_supply")
 	ErrIncorrectQuantity     = errors.New("err_incorrect_quantity")

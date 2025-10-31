@@ -198,6 +198,7 @@ func (v *BasicToken) HandleInfo(from string) (res *vmmSchema.Result, err error) 
 		{Name: "Ticker", Value: v.Info.Ticker},
 		{Name: "Logo", Value: v.Info.Logo},
 		{Name: "Denomination", Value: v.Info.Decimals},
+		{Name: "Description", Value: v.Info.Description},
 		{Name: "Owner", Value: v.Owner},
 		{Name: "MintOwner", Value: v.MintOwner},
 	}

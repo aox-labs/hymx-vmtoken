@@ -16,6 +16,7 @@ import (
 type CrossChainMultiToken struct {
 	*BasicToken
 
+	MintedRecords     map[string]string   // key: X-MintTxHash val: chainType
 	SourceTokenChains map[string]string   // key: sourceTokenId, val: sourceChainType
 	SourceLockAmounts map[string]*big.Int // key: sourceChain:sourceTokenId, val: source chain locked amount
 	BurnFees          map[string]*big.Int // key: chainType, val: burn fee
@@ -27,6 +28,7 @@ type CrossChainMultiToken struct {
 func NewCrossChainMultiToken(info schema.Info, owner string, mintOwner string, burnFees map[string]*big.Int, feeRecipient string, burnProcessor string) *CrossChainMultiToken {
 	return &CrossChainMultiToken{
 		BasicToken:        NewBasicToken(info, owner, mintOwner, big.NewInt(0)),
+		MintedRecords:     make(map[string]string),
 		SourceTokenChains: make(map[string]string),
 		SourceLockAmounts: make(map[string]*big.Int),
 		BurnFees:          burnFees,
@@ -399,6 +401,11 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 		return
 	}
 
+	if _, ok := v.MintedRecords[params["X-MintTxHash"]]; ok {
+		err = schema.ErrRepeatMint
+		return
+	}
+
 	// Parse and validate recipient
 	recipient, exists := params["Recipient"]
 	if !exists {
@@ -496,6 +503,7 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 		},
 	}
 
+	v.MintedRecords[params["X-MintTxHash"]] = sourceChainType
 	mergedMap := v.CacheBalances(map[string]*big.Int{recipient: v.BalanceOf(recipient)})
 	maps.Copy(mergedMap, v.CacheTokenInfo())
 	res = &vmmSchema.Result{

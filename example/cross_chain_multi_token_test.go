@@ -354,9 +354,10 @@ func TestCrossChainMultiTokenComplexScenario(t *testing.T) {
 
 	// user-4 withdraws to Ethereum
 	burn1 := map[string]string{
-		"Recipient":     "user-4-ethereum",
-		"Quantity":      "30000000",
-		"TargetTokenId": "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+		"Recipient":       "xxxx",
+		"Quantity":        "30000000",
+		"TargetTokenId":   "xxxxx",
+		"TargetChainType": "bsc",
 	}
 	multiToken.HandleCrossChainBurn("user-4", burn1)
 
