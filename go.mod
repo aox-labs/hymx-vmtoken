@@ -3,6 +3,7 @@ module github.com/aox-labs/hymx-vmtoken
 go 1.24.3
 
 require (
+	github.com/ethereum/go-ethereum v1.14.11
 	github.com/everFinance/goether v1.2.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/hymatrix/hymx v0.3.1
@@ -31,7 +32,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.3 // indirect
-	github.com/ethereum/go-ethereum v1.14.11 // indirect
 	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/everFinance/ethrpc v1.0.4 // indirect
 	github.com/everFinance/gojwk v1.0.0 // indirect
