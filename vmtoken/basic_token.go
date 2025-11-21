@@ -55,7 +55,7 @@ func SpawnBasicToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	// Parse and validate MintOwner with default value
 	mintOwnerStr := env.Meta.Params["MintOwner"]
 	if mintOwnerStr == "" {
-		mintOwnerStr = env.AccId // Default to owner
+		mintOwnerStr = env.Meta.AccId // Default to owner
 	}
 	_, mintOwner, err := utils.IDCheck(mintOwnerStr)
 	if err != nil {
@@ -73,13 +73,13 @@ func SpawnBasicToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	vm = NewBasicToken(schema.Info{
-		Id:          env.Id,
+		Id:          env.Meta.ItemId,
 		Name:        env.Meta.Params["Name"],
 		Ticker:      env.Meta.Params["Ticker"],
 		Decimals:    env.Meta.Params["Decimals"],
 		Logo:        env.Meta.Params["Logo"],
 		Description: env.Meta.Params["Description"],
-	}, env.AccId, mintOwner, maxSupply)
+	}, env.Meta.AccId, mintOwner, maxSupply)
 
 	return vm, nil
 }

@@ -55,7 +55,7 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	// Parse and validate FeeRecipient with default value
 	feeRecipient := env.Meta.Params["FeeRecipient"]
 	if feeRecipient == "" {
-		feeRecipient = env.AccId // Default to owner
+		feeRecipient = env.Meta.AccId // Default to owner
 	}
 	_, feeRecipient, err = utils.IDCheck(feeRecipient)
 	if err != nil {
@@ -66,7 +66,7 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	// Parse and validate MintOwner with default value
 	mintOwner := env.Meta.Params["MintOwner"]
 	if mintOwner == "" {
-		mintOwner = env.AccId // Default to owner
+		mintOwner = env.Meta.AccId // Default to owner
 	}
 	_, mintOwner, err = utils.IDCheck(mintOwner)
 	if err != nil {
@@ -77,7 +77,7 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	// Parse and validate BurnProcessor with default value
 	burnProcessor := env.Meta.Params["BurnProcessor"]
 	if burnProcessor == "" {
-		burnProcessor = env.AccId // Default to owner
+		burnProcessor = env.Meta.AccId // Default to owner
 	}
 	_, burnProcessor, err = utils.IDCheck(burnProcessor)
 	if err != nil {
@@ -86,13 +86,13 @@ func SpawnCrossChainToken(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	vm = NewCrossChainToken(schema.Info{
-		Id:          env.Id,
+		Id:          env.Meta.ItemId,
 		Name:        env.Meta.Params["Name"],
 		Ticker:      env.Meta.Params["Ticker"],
 		Decimals:    env.Meta.Params["Decimals"],
 		Logo:        env.Meta.Params["Logo"],
 		Description: env.Meta.Params["Description"],
-	}, env.AccId, mintOwner, burnFee, feeRecipient, burnProcessor)
+	}, env.Meta.AccId, mintOwner, burnFee, feeRecipient, burnProcessor)
 
 	return vm, nil
 }

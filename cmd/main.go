@@ -64,10 +64,10 @@ func run(c *cli.Context) (err error) {
 		log15.Root().SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 	}
 
-	node := node.New(bundler, redisURL, arweaveURL, hymxURL, nodeInfo)
+	node := node.New(bundler, redisURL, arweaveURL, hymxURL, nodeInfo, nil)
 	// chainkit := chainkit.New(node, LoadChainkitConfig())
 
-	s := server.New(node, nil, nil)
+	s := server.New(node, nil)
 	// mount vm token variants
 	s.Mount(schema.VmTokenBasicModuleFormat, vmtoken.SpawnBasicToken)
 	s.Mount(schema.VmTokenCrossChainModuleFormat, vmtoken.SpawnCrossChainToken)

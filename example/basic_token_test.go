@@ -13,10 +13,10 @@ import (
 
 var (
 	BASIC_MODULE = "9bQh650l10NZ7GHUvj1L_kIIiivp9Zj7kJNY3CLEcRM" // Basic token module format
-	SCHEDULER    = "0x972AeD684D6f817e1b58AF70933dF1b4a75bfA51"  // local hymx node accId
-	// SCHEDULER = "0xCD1Ef67a57a7c03BFB05F175Be10e3eC79821138" // permadao node accId
-	hymxUrl = "http://127.0.0.1:8080" // local hymx node rpc
-	// hymxUrl = "https://hymx.permadao.io" // local hymx node rpc
+	// SCHEDULER    = "0x972AeD684D6f817e1b58AF70933dF1b4a75bfA51"  // local hymx node accId
+	SCHEDULER = "0xCD1Ef67a57a7c03BFB05F175Be10e3eC79821138" // permadao node accId
+	// hymxUrl = "http://127.0.0.1:8080" // local hymx node rpc
+	hymxUrl = "https://hymx.permadao.io" // local hymx node rpc
 
 	testArKeyFile = "./test-keyfile.json" // generate cmd: npx -y @permaweb/wallet > test-keyfile.json
 	hySdk         = sdk.New(hymxUrl, testArKeyFile)
@@ -40,7 +40,7 @@ func Test_Basic_Token_Spawn(t *testing.T) {
 	t.Log("Basic token PID: ", res.Id)
 }
 
-var basicTokenPid = "vfB8_goyfsagvrkN0kxv90gRlUT58tyhMTNodj4g4FY" // copy Test_Basic_Token_Spawn result tokenPid
+var basicTokenPid = "32Qj4T7mnk9DiAv5tSioZ5acXHxk07JOfpKV29e24P0" // copy Test_Basic_Token_Spawn result tokenPid
 
 // Test_Basic_Token_Info tests getting basic token info
 func Test_Basic_Token_Info(t *testing.T) {
