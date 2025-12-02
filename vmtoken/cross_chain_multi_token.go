@@ -142,7 +142,7 @@ func (v *CrossChainMultiToken) CacheTokenInfo() map[string]string {
 }
 
 // Override Apply to enable multi-chain functionality and handle cross-chain specific actions
-func (v *CrossChainMultiToken) Apply(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, err error) {
+func (v *CrossChainMultiToken) Apply(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	switch meta.Action {
 	case "Info":
 		defer func() { // Initialize cache on first Info call
@@ -259,7 +259,7 @@ func (v *CrossChainMultiToken) Restore(data string) error {
 }
 
 // Override HandleInfo to include multi-chain specific fields
-func (v *CrossChainMultiToken) HandleInfo(from string) (res *vmmSchema.Result, err error) {
+func (v *CrossChainMultiToken) HandleInfo(from string) (res vmmSchema.Result) {
 	// Serialize multi-chain data
 	burnFeesJson, _ := json.Marshal(v.BurnFees)
 	sourceTokenChainsJson, _ := json.Marshal(v.SourceTokenChains)
@@ -281,7 +281,7 @@ func (v *CrossChainMultiToken) HandleInfo(from string) (res *vmmSchema.Result, e
 		{Name: "SourceLockAmounts", Value: string(sourceLockAmountsJson)},
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -293,15 +293,14 @@ func (v *CrossChainMultiToken) HandleInfo(from string) (res *vmmSchema.Result, e
 }
 
 // Override HandleSetParams to handle Burn-specific parameters
-func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -309,7 +308,7 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -393,7 +392,7 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 		v.BurnProcessor = burnProcessor
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -408,15 +407,14 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 }
 
 // HandleCrossChainMint handles cross-chain minting with source chain tracking
-func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[string]string) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -424,7 +422,7 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -539,7 +537,7 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 	v.MintedRecords[params["X-MintTxHash"]] = sourceChainType
 	mergedMap := v.CacheBalances(map[string]*big.Int{recipient: v.BalanceOf(recipient)})
 	maps.Copy(mergedMap, v.CacheTokenInfo())
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{ownerNotice, recipientNotice},
 		Cache:    mergedMap,
 	}
@@ -547,15 +545,14 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 }
 
 // HandleCrossChainBurn handles cross-chain burning with target chain selection
-func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[string]string) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -563,7 +560,7 @@ func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[stri
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -648,7 +645,7 @@ func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[stri
 	// Prepare result with cache updates
 	mergedMap := v.CacheBalances(map[string]*big.Int{from: v.BalanceOf(from), v.FeeRecipient: v.BalanceOf(v.FeeRecipient)})
 	maps.Copy(mergedMap, v.CacheTokenInfo())
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{creditNotice},
 		Cache:    mergedMap,
 	}

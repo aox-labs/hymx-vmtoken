@@ -15,9 +15,9 @@ func TestCrossChainMultiToken(t *testing.T) {
 
 	// Initialize environment parameters
 	env := vmmSchema.Env{
-		Id:    "multi-usd-token",
-		AccId: "owner-address",
 		Meta: vmmSchema.Meta{
+			Pid:    "multi-usd-token",
+			AccId:  "owner-address",
 			Action: "Spawn",
 			Params: map[string]string{
 				"Name":          "Multi-Chain USD Token",
@@ -55,8 +55,7 @@ func TestCrossChainMultiToken(t *testing.T) {
 		"X-MintTxHash":    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 	}
 
-	result, err := multiToken.HandleCrossChainMint("0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766", mintParams)
-	assert.NoError(t, err)
+	result := multiToken.HandleCrossChainMint("0x6d2e03b7EfFEae98BD302A9F836D0d6Ab0002766", mintParams)
 	assert.Equal(t, "", result.Error)
 	t.Log(result.Messages[0])
 	t.Log("Balances: ", multiToken.Balances)
@@ -66,8 +65,7 @@ func TestCrossChainMultiToken(t *testing.T) {
 		"Quantity":  "50000000", // 50 mUSD (6 decimals)
 	}
 
-	transferResult, err := multiToken.HandleTransfer("tx-id-1", "0xa7ae99c13d82dd32fc6445ec09e38d197335f38a", transferParams)
-	assert.NoError(t, err)
+	transferResult := multiToken.HandleTransfer("tx-id-1", "0xa7ae99c13d82dd32fc6445ec09e38d197335f38a", transferParams)
 	assert.Equal(t, "", transferResult.Error)
 	t.Log(transferResult.Messages[0])
 
@@ -80,8 +78,7 @@ func TestCrossChainMultiToken(t *testing.T) {
 		"TargetTokenId": "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 	}
 
-	burnResult, err := multiToken.HandleCrossChainBurn("FyINHRSrHW0teUhvJzd6R33Tl50qxLnSj8LJCP5puiI", burnParams)
-	assert.NoError(t, err)
+	burnResult := multiToken.HandleCrossChainBurn("FyINHRSrHW0teUhvJzd6R33Tl50qxLnSj8LJCP5puiI", burnParams)
 	assert.Equal(t, "", burnResult.Error)
 	t.Log(burnResult.Messages[0])
 
@@ -93,14 +90,10 @@ func TestCrossChainMultiToken(t *testing.T) {
 		"TargetTokenId": "non-existent-token-id",
 	}
 
-	burnResult3, err := multiToken.HandleCrossChainBurn("user-a-address", burnParams3)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-		for _, msg := range burnResult3.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
+	burnResult3 := multiToken.HandleCrossChainBurn("user-a-address", burnParams3)
+	fmt.Println("Unexpected success!")
+	for _, msg := range burnResult3.Messages {
+		fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
 	}
 
 	// Test error case: attempt to withdraw more than locked amount
@@ -111,48 +104,36 @@ func TestCrossChainMultiToken(t *testing.T) {
 		"TargetTokenId": "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 	}
 
-	burnResult4, err := multiToken.HandleCrossChainBurn("user-a-address", burnParams4)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-		for _, msg := range burnResult4.Messages {
-			fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
-		}
+	burnResult4 := multiToken.HandleCrossChainBurn("user-a-address", burnParams4)
+	fmt.Println("Unexpected success!")
+	for _, msg := range burnResult4.Messages {
+		fmt.Printf("Message: %s -> %s\n", msg.Target, msg.Tags[0].Value)
 	}
 
 	// Final state query
 	fmt.Println("\n=== Final State Query ===")
 
 	// Query user balances
-	balanceResult, err := multiToken.HandleBalanceOf("user-a-address", map[string]string{})
-	if err == nil {
-		for _, msg := range balanceResult.Messages {
-			fmt.Printf("User A balance: %s\n", msg.Data)
-		}
+	balanceResult := multiToken.HandleBalanceOf("user-a-address", map[string]string{})
+	for _, msg := range balanceResult.Messages {
+		fmt.Printf("User A balance: %s\n", msg.Data)
 	}
 
-	balanceResult2, err := multiToken.HandleBalanceOf("user-b-address", map[string]string{})
-	if err == nil {
-		for _, msg := range balanceResult2.Messages {
-			fmt.Printf("User B balance: %s\n", msg.Data)
-		}
+	balanceResult2 := multiToken.HandleBalanceOf("user-b-address", map[string]string{})
+	for _, msg := range balanceResult2.Messages {
+		fmt.Printf("User B balance: %s\n", msg.Data)
 	}
 
-	balanceResult3, err := multiToken.HandleBalanceOf("user-c-address", map[string]string{})
-	if err == nil {
-		for _, msg := range balanceResult3.Messages {
-			fmt.Printf("User C balance: %s\n", msg.Data)
-		}
+	balanceResult3 := multiToken.HandleBalanceOf("user-c-address", map[string]string{})
+	for _, msg := range balanceResult3.Messages {
+		fmt.Printf("User C balance: %s\n", msg.Data)
 	}
 
 	// Query token information
 	fmt.Println("\n=== Token Information Query ===")
-	infoResult, err := multiToken.HandleInfo("owner-address")
-	if err == nil {
-		for _, msg := range infoResult.Messages {
-			fmt.Printf("Token info: %s\n", msg.Tags[0].Value)
-		}
+	infoResult := multiToken.HandleInfo("owner-address")
+	for _, msg := range infoResult.Messages {
+		fmt.Printf("Token info: %s\n", msg.Tags[0].Value)
 	}
 
 	fmt.Println("\n=== Test Completed ===")
@@ -164,9 +145,9 @@ func TestCrossChainMultiTokenErrorCases(t *testing.T) {
 
 	// Create token
 	env := vmmSchema.Env{
-		Id:    "multi-usd-token-error",
-		AccId: "owner-address",
 		Meta: vmmSchema.Meta{
+			Pid:    "multi-usd-token-error",
+			AccId:  "owner-address",
 			Action: "Spawn",
 			Params: map[string]string{
 				"Name":          "Multi-Chain USD Token",
@@ -197,12 +178,7 @@ func TestCrossChainMultiTokenErrorCases(t *testing.T) {
 		"SourceTokenId":   "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 	}
 
-	_, err = multiToken.HandleCrossChainMint("unauthorized-user", mintParams)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-	}
+	_ = multiToken.HandleCrossChainMint("unauthorized-user", mintParams)
 
 	// Test 2: Missing required parameters
 	fmt.Println("\n--- Test 2: Missing Required Parameters ---")
@@ -212,12 +188,8 @@ func TestCrossChainMultiTokenErrorCases(t *testing.T) {
 		// Missing SourceChainType and SourceTokenId
 	}
 
-	_, err = multiToken.HandleCrossChainMint("mint-owner-address", mintParams2)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-	}
+	_ = multiToken.HandleCrossChainMint("mint-owner-address", mintParams2)
+	fmt.Println("Unexpected success!")
 
 	// Test 3: Invalid quantity format
 	fmt.Println("\n--- Test 3: Invalid Quantity Format ---")
@@ -228,12 +200,7 @@ func TestCrossChainMultiTokenErrorCases(t *testing.T) {
 		"SourceTokenId":   "usdc-ethereum-0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
 	}
 
-	_, err = multiToken.HandleCrossChainMint("mint-owner-address", mintParams3)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-	}
+	_ = multiToken.HandleCrossChainMint("mint-owner-address", mintParams3)
 
 	// Test 4: Attempt to Burn non-existent token
 	fmt.Println("\n--- Test 4: Attempt to Burn Non-existent Token ---")
@@ -243,12 +210,7 @@ func TestCrossChainMultiTokenErrorCases(t *testing.T) {
 		"TargetTokenId": "non-existent-token",
 	}
 
-	_, err = multiToken.HandleCrossChainBurn("user-address", burnParams)
-	if err != nil {
-		fmt.Printf("Expected error: %v\n", err)
-	} else {
-		fmt.Println("Unexpected success!")
-	}
+	_ = multiToken.HandleCrossChainBurn("user-address", burnParams)
 
 	fmt.Println("\n=== Error Cases Test Completed ===")
 }
@@ -259,9 +221,9 @@ func TestCrossChainMultiTokenComplexScenario(t *testing.T) {
 
 	// Create token
 	env := vmmSchema.Env{
-		Id:    "multi-usd-token-complex",
-		AccId: "owner-address",
 		Meta: vmmSchema.Meta{
+			Pid:    "multi-usd-token-complex",
+			AccId:  "owner-address",
 			Action: "Spawn",
 			Params: map[string]string{
 				"Name":          "Multi-Chain USD Token",
@@ -316,13 +278,8 @@ func TestCrossChainMultiTokenComplexScenario(t *testing.T) {
 	// Execute multiple Mints
 	mints := []map[string]string{mintParams1, mintParams2, mintParams3}
 
-	for i, mintParams := range mints {
-		_, err := multiToken.HandleCrossChainMint("mint-owner-address", mintParams)
-		if err != nil {
-			fmt.Printf("User %d Mint failed: %v\n", i+1, err)
-		} else {
-			fmt.Printf("User %d Mint successful!\n", i+1)
-		}
+	for _, mintParams := range mints {
+		_ = multiToken.HandleCrossChainMint("mint-owner-address", mintParams)
 	}
 
 	// Scenario 2: Complex transfer network
@@ -374,23 +331,19 @@ func TestCrossChainMultiTokenComplexScenario(t *testing.T) {
 
 	// Query all user balances
 	for i, user := range []string{"user-1", "user-2", "user-3", "user-4", "user-5"} {
-		balanceResult, err := multiToken.HandleBalanceOf(user, map[string]string{})
-		if err == nil {
-			for _, msg := range balanceResult.Messages {
-				fmt.Printf("User %d (%s) balance: %s\n", i+1, user, msg.Data)
-			}
+		balanceResult := multiToken.HandleBalanceOf(user, map[string]string{})
+		for _, msg := range balanceResult.Messages {
+			fmt.Printf("User %d (%s) balance: %s\n", i+1, user, msg.Data)
 		}
 	}
 
 	// Query token information
-	infoResult, err := multiToken.HandleInfo("owner-address")
-	if err == nil {
-		fmt.Println("\nToken information:")
-		for _, msg := range infoResult.Messages {
-			for _, tag := range msg.Tags {
-				if tag.Name == "SourceTokenChains" || tag.Name == "SourceLockAmounts" {
-					fmt.Printf("%s: %s\n", tag.Name, tag.Value)
-				}
+	infoResult := multiToken.HandleInfo("owner-address")
+	fmt.Println("\nToken information:")
+	for _, msg := range infoResult.Messages {
+		for _, tag := range msg.Tags {
+			if tag.Name == "SourceTokenChains" || tag.Name == "SourceLockAmounts" {
+				fmt.Printf("%s: %s\n", tag.Name, tag.Value)
 			}
 		}
 	}

@@ -119,7 +119,7 @@ func (v *CrossChainToken) CacheTokenInfo() map[string]string {
 }
 
 // Override Apply to enable Burn functionality and handle cross-chain specific actions
-func (v *CrossChainToken) Apply(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, err error) {
+func (v *CrossChainToken) Apply(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	switch meta.Action {
 	case "Info":
 		defer func() { // Initialize cache on first Info call
@@ -221,7 +221,7 @@ func (v *CrossChainToken) Restore(data string) error {
 }
 
 // Override HandleInfo to include Burn-specific fields
-func (v *CrossChainToken) HandleInfo(from string) (res *vmmSchema.Result, err error) {
+func (v *CrossChainToken) HandleInfo(from string) (res vmmSchema.Result) {
 	// Define all token info tags
 	tags := []goarSchema.Tag{
 		{Name: "Name", Value: v.Info.Name},
@@ -236,7 +236,7 @@ func (v *CrossChainToken) HandleInfo(from string) (res *vmmSchema.Result, err er
 		{Name: "BurnProcessor", Value: v.BurnProcessor},
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -248,15 +248,14 @@ func (v *CrossChainToken) HandleInfo(from string) (res *vmmSchema.Result, err er
 }
 
 // Override HandleSetParams to handle Burn-specific parameters
-func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -264,7 +263,7 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -342,7 +341,7 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 		v.BurnProcessor = burnProcessor
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -357,15 +356,14 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 }
 
 // Cross-chain specific method: HandleBurn
-func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -373,7 +371,7 @@ func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -428,7 +426,7 @@ func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res
 	}
 
 	// Prepare result with cache updates
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{creditNotice},
 		Cache: v.CacheBalances(map[string]*big.Int{
 			from:           v.BalanceOf(from),

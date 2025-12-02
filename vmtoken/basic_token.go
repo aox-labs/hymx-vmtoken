@@ -115,7 +115,7 @@ func (v *BasicToken) CacheBalances(updateBalances map[string]*big.Int) map[strin
 	return cacheMap
 }
 
-func (v *BasicToken) Apply(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, err error) {
+func (v *BasicToken) Apply(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	switch meta.Action {
 	case "Info":
 		defer func() { // Initialize cache on first Info call
@@ -204,7 +204,7 @@ func (v *BasicToken) Close() error {
 }
 
 // Basic token specific methods
-func (v *BasicToken) HandleInfo(from string) (res *vmmSchema.Result, err error) {
+func (v *BasicToken) HandleInfo(from string) (res vmmSchema.Result) {
 	// Define all token info tags
 	tags := []goarSchema.Tag{
 		{Name: "Name", Value: v.Info.Name},
@@ -216,7 +216,7 @@ func (v *BasicToken) HandleInfo(from string) (res *vmmSchema.Result, err error) 
 		{Name: "MintOwner", Value: v.MintOwner},
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -227,15 +227,14 @@ func (v *BasicToken) HandleInfo(from string) (res *vmmSchema.Result, err error) 
 	return
 }
 
-func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -243,7 +242,7 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 	if from != v.Owner {
@@ -291,7 +290,7 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 		v.Info.Description = meta.Params["Description"]
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -305,8 +304,8 @@ func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res *vmm
 	return
 }
 
-func (v *BasicToken) HandleTotalSupply(from string) (res *vmmSchema.Result, err error) {
-	res = &vmmSchema.Result{
+func (v *BasicToken) HandleTotalSupply(from string) (res vmmSchema.Result) {
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -321,7 +320,7 @@ func (v *BasicToken) HandleTotalSupply(from string) (res *vmmSchema.Result, err 
 	return
 }
 
-func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res *vmmSchema.Result, err error) {
+func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res vmmSchema.Result) {
 	// Determine account to query (default to sender if not specified)
 	accountId := from
 	if recipient, exists := params["Recipient"]; exists && recipient != "" {
@@ -329,15 +328,16 @@ func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res
 	} else if target, ok := params["Target"]; ok && target != "" {
 		accountId = target
 	}
-	_, accountId, err = utils.IDCheck(accountId)
+	_, accountId, err := utils.IDCheck(accountId)
 	if err != nil {
-		err = schema.ErrInvalidRecipient
+		res = vmmSchema.Result{
+			Error: schema.ErrInvalidRecipient,
+		}
 		return
 	}
 
 	balance := v.BalanceOf(accountId)
-
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{
 			{
 				Target: from,
@@ -353,15 +353,14 @@ func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res
 	return
 }
 
-func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]string) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -370,7 +369,7 @@ func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]strin
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -445,7 +444,7 @@ func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]strin
 		}
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{debitNotice, creditNotice},
 		Cache: v.CacheBalances(map[string]*big.Int{
 			from:      v.BalanceOf(from),
@@ -455,15 +454,14 @@ func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]strin
 	return
 }
 
-func (v *BasicToken) HandleMint(from string, params map[string]string) (res *vmmSchema.Result, applyErr error) {
-	var err error
+func (v *BasicToken) HandleMint(from string, params map[string]string) (res vmmSchema.Result) {
+	var (
+		err  error
+		msgs = make([]*vmmSchema.ResMessage, 0)
+	)
 	defer func() {
+		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
-			if res == nil {
-				res = &vmmSchema.Result{
-					Messages: make([]*vmmSchema.ResMessage, 0),
-				}
-			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -471,7 +469,7 @@ func (v *BasicToken) HandleMint(from string, params map[string]string) (res *vmm
 					{Name: "Error", Value: err.Error()},
 				},
 			})
-			res.Error = err.Error()
+			res.Error = err
 		}
 	}()
 
@@ -540,7 +538,7 @@ func (v *BasicToken) HandleMint(from string, params map[string]string) (res *vmm
 		},
 	}
 
-	res = &vmmSchema.Result{
+	res = vmmSchema.Result{
 		Messages: []*vmmSchema.ResMessage{ownerNotice, recipientNotice},
 		Cache: v.CacheBalances(map[string]*big.Int{
 			recipient: v.BalanceOf(recipient),
