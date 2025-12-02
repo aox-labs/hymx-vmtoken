@@ -250,12 +250,13 @@ func (v *CrossChainToken) HandleInfo(from string) (res vmmSchema.Result) {
 // Override HandleSetParams to handle Burn-specific parameters
 func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -358,12 +359,13 @@ func (v *CrossChainToken) HandleSetParams(from string, meta vmmSchema.Meta) (res
 // Cross-chain specific method: HandleBurn
 func (v *CrossChainToken) HandleBurn(from string, params map[string]string) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{

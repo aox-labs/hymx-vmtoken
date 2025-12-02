@@ -229,12 +229,13 @@ func (v *BasicToken) HandleInfo(from string) (res vmmSchema.Result) {
 
 func (v *BasicToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -355,12 +356,13 @@ func (v *BasicToken) HandleBalanceOf(from string, params map[string]string) (res
 
 func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]string) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -456,12 +458,13 @@ func (v *BasicToken) HandleTransfer(itemId, from string, params map[string]strin
 
 func (v *BasicToken) HandleMint(from string, params map[string]string) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{

@@ -295,12 +295,13 @@ func (v *CrossChainMultiToken) HandleInfo(from string) (res vmmSchema.Result) {
 // Override HandleSetParams to handle Burn-specific parameters
 func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -409,12 +410,13 @@ func (v *CrossChainMultiToken) HandleSetParams(from string, meta vmmSchema.Meta)
 // HandleCrossChainMint handles cross-chain minting with source chain tracking
 func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[string]string) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
 		if err != nil {
+			if res.Messages == nil {
+				res.Messages = make([]*vmmSchema.ResMessage, 0)
+			}
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
 				Tags: []goarSchema.Tag{
@@ -547,11 +549,12 @@ func (v *CrossChainMultiToken) HandleCrossChainMint(from string, params map[stri
 // HandleCrossChainBurn handles cross-chain burning with target chain selection
 func (v *CrossChainMultiToken) HandleCrossChainBurn(from string, params map[string]string) (res vmmSchema.Result) {
 	var (
-		err  error
-		msgs = make([]*vmmSchema.ResMessage, 0)
+		err error
 	)
 	defer func() {
-		res = vmmSchema.Result{Messages: msgs}
+		if res.Messages == nil {
+			res.Messages = make([]*vmmSchema.ResMessage, 0)
+		}
 		if err != nil {
 			res.Messages = append(res.Messages, &vmmSchema.ResMessage{
 				Target: from,
