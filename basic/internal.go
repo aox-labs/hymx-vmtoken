@@ -1,7 +1,7 @@
 package basic
 
 import (
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 	"math/big"
 )

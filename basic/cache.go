@@ -2,7 +2,7 @@ package basic
 
 import (
 	"encoding/json"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	"maps"
 	"math/big"
 )
@@ -22,7 +22,7 @@ func (b *Token) initCache() (cache map[string]string) {
 
 func (b *Token) cacheTokenInfo() map[string]string {
 	info := b.DB.Info()
-	cacheInfo := schema.CacheInfo{
+	cacheInfo := schema.BasicCacheInfo{
 		Name:        info.Name,
 		Ticker:      info.Ticker,
 		Decimals:    info.Decimals,

@@ -3,6 +3,11 @@ package schema
 import "errors"
 
 var (
+	ErrInsufficientBalance   = errors.New("err_insufficient_balance")
+	ErrInsufficientMaxSupply = errors.New("err_insufficient_max_supply")
+	ErrInvalidFrom           = errors.New("err_invalid_from")
+	ErrInvalidMaxSupply      = errors.New("err_invalid_max_supply")
+
 	ErrMissingRecipient      = errors.New("err_missing_recipient")
 	ErrMissingQuantity       = errors.New("err_missing_quantity")
 	ErrInvalidQuantityFormat = errors.New("err_invalid_quantity_format")

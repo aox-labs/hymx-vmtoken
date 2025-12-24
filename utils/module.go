@@ -9,7 +9,7 @@ import (
 
 // generate aox vm token module
 func generateModule(moduleFormat string) {
-	item, _ := s.GenerateModule([]byte{}, hymxSchema.Module{
+	item, _ := s.GenModule([]byte{}, hymxSchema.Module{
 		Base:         hymxSchema.DefaultBaseModule,
 		ModuleFormat: moduleFormat,
 	})

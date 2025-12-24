@@ -2,7 +2,7 @@ package crosschain
 
 import (
 	"encoding/json"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	"maps"
 )
 
@@ -29,7 +29,7 @@ func (t *Token) cacheTokenInfo() map[string]string {
 	sourceLockAmountsJson, _ := json.Marshal(t.db.GetSourceLockAmounts())
 
 	info := t.basic.DB.Info()
-	cacheInfo := schema.CacheInfo{
+	cacheInfo := schema.CrossChainCacheInfo{
 		Name:              info.Name,
 		Ticker:            info.Ticker,
 		Decimals:          info.Decimals,

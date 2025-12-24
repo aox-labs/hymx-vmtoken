@@ -2,7 +2,7 @@ package basic
 
 import (
 	"encoding/json"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 	goarSchema "github.com/permadao/goar/schema"

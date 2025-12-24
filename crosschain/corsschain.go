@@ -2,19 +2,18 @@ package crosschain
 
 import (
 	"encoding/json"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/db/cache"
+	"github.com/aox-labs/hymx-vmtoken/db/cache"
 	"github.com/hymatrix/hymx/vmm/utils"
 	"math/big"
 
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic"
-	basicSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain/schema"
+	"github.com/aox-labs/hymx-vmtoken/basic"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 )
 
 type Token struct {
 	basic *basic.Token
-	db    schema.IDB
+	db    schema.CrossChainDB
 }
 
 func Spawn(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
@@ -77,7 +76,7 @@ func Spawn(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {
 	}
 
 	basicToken := &basic.Token{
-		DB: cache.NewBasicToken(basicSchema.Info{
+		DB: cache.NewBasicToken(schema.Info{
 			Id:          env.Meta.ItemId,
 			Name:        env.Meta.Params["Name"],
 			Ticker:      env.Meta.Params["Ticker"],

@@ -1,15 +1,15 @@
 package basic
 
 import (
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/db/cache"
+	"github.com/aox-labs/hymx-vmtoken/db/cache"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 	"math/big"
 )
 
 type Token struct {
-	DB schema.IDB
+	DB schema.BasicDB
 }
 
 func Spawn(env vmmSchema.Env) (vm vmmSchema.Vm, err error) {

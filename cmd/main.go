@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain"
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
+	"github.com/aox-labs/hymx-vmtoken/basic"
+	"github.com/aox-labs/hymx-vmtoken/crosschain"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	"github.com/gin-gonic/gin"
 	"github.com/hymatrix/hymx/common"
 	"github.com/hymatrix/hymx/node"

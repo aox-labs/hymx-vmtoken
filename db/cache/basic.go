@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
-	dbSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/db/cache/schema"
+	dbSchema "github.com/aox-labs/hymx-vmtoken/db/cache/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
 )
 

@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"sync"
 
-	dbSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/db/cache/schema"
+	dbSchema "github.com/aox-labs/hymx-vmtoken/db/cache/schema"
 )
 
 type CrossChainToken struct {

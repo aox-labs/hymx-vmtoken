@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	bSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
-	cSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain/schema"
+	"github.com/aox-labs/hymx-vmtoken/schema"
 	goarSchema "github.com/permadao/goar/schema"
 	"github.com/tidwall/gjson"
 )
@@ -109,13 +108,13 @@ func transfer(tokenId, to, amt string) {
 	}
 }
 
-func getBasicTokenInfoByCache(tokenId string) bSchema.CacheInfo {
+func getBasicTokenInfoByCache(tokenId string) schema.BasicCacheInfo {
 	infoJs, err := hysdk.Client.GetCache(tokenId, "token-info")
 	if err != nil {
 		panic(fmt.Sprintf("failed to get info: %v", err))
 	}
 
-	info := bSchema.CacheInfo{}
+	info := schema.BasicCacheInfo{}
 	if err = json.Unmarshal([]byte(infoJs), &info); err != nil {
 		panic(fmt.Sprintf("failed to unmarshal infoJs: %v", err))
 	}
@@ -123,13 +122,13 @@ func getBasicTokenInfoByCache(tokenId string) bSchema.CacheInfo {
 	return info
 }
 
-func getCcTokenInfoByCache(tokenId string) cSchema.CacheInfo {
+func getCcTokenInfoByCache(tokenId string) schema.CrossChainCacheInfo {
 	infoJs, err := hysdk.Client.GetCache(tokenId, "token-info")
 	if err != nil {
 		panic(fmt.Sprintf("failed to get amm info: %v", err))
 	}
 
-	info := cSchema.CacheInfo{}
+	info := schema.CrossChainCacheInfo{}
 	if err = json.Unmarshal([]byte(infoJs), &info); err != nil {
 		panic(fmt.Sprintf("failed to unmarshal infoJs: %v", err))
 	}
