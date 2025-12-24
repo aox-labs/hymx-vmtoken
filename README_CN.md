@@ -1,366 +1,481 @@
-## hymx-vmtoken
+# hymx-vmtoken
 
-基于 Hymatrix Hymx 的通用 Token VM 实现，支持基础代币、跨链代币和跨链多代币三种类型。
+基于 Hymatrix Hymx 的通用 Token VM 实现，支持基础代币和跨链代币两种类型。
 
-此项目提供：
-- **基础代币 VM**：标准代币功能，无销毁支持（模块格式：`hymx.basic.token.0.0.1`）
-- **跨链代币 VM**：扩展代币功能，包含销毁功能，适用于跨链操作（模块格式：`hymx.crosschain.token.0.0.1`）
-- **跨链多代币 VM**：高级代币功能，支持多链跨链铸造/销毁操作（模块格式：`hymx.cross.chain.multi.token.0.0.1`）
-- **服务端集成**：将所有代币类型作为 VM 挂载到 Hymx 节点，并实现代币参数 cache 读取
-- **SDK 使用示例**：使用 `github.com/hymatrix/hymx/sdk` 进行部署与调用代币 (详细测试请参考 example)
+## 项目概述
 
-适合需要在 Hymx 上发行和管理同质化代币的开发者，可选择基础代币或具有销毁功能的跨链代币。
+此项目提供了两种代币 VM 实现：
 
-### 代币类型与模块格式
+- **基础代币 VM**：标准代币功能，支持铸造、转账、查询等基础操作（模块格式：`hymx.basic.token.0.0.1`）
+- **跨链代币 VM**：扩展代币功能，在基础代币基础上增加了跨链铸造和销毁功能（模块格式：`hymx.crosschain.token.0.0.1`）
 
-#### 基础代币（推荐用于简单场景）
-- **模块格式**：`schema.VmTokenBasicModuleFormat = "hymx.basic.token.0.0.1"`
-- **功能特性**：Info, Set-Params, Total-Supply, Balance, Transfer, Mint
-- **无销毁支持**：更轻量，适合基础资产发行
-- **生成函数**：`vmtoken.SpawnBasicToken`
+所有代币类型都可以作为 VM 挂载到 Hymx 节点，并通过缓存系统提供快速的状态查询。
 
-#### 跨链代币（适用于跨链操作）
-- **模块格式**：`schema.VmTokenCrossChainModuleFormat = "hymx.crosschain.token.0.0.1"`
-- **功能特性**：包含所有基础功能 + 销毁功能
-- **销毁支持**：包含销毁手续费和手续费接收者，适用于跨链结算
-- **销毁处理器**：支持自定义销毁通知处理器，默认与 MintOwner 一致
-- **生成函数**：`vmtoken.SpawnCrossChainToken`
+## 代币类型
 
-#### 跨链多代币（适用于多链跨链操作）
-- **模块格式**：`schema.VmTokenCrossChainMultiModuleFormat = "hymx.cross.chain.multi.token.0.0.1"`
-- **功能特性**：包含所有基础功能 + 多链跨链铸造/销毁功能
-- **多链支持**：跟踪不同链的源代币和锁定数量
-- **跨链铸造**：基于不同链锁定的资产铸造代币
-- **跨链销毁**：销毁代币以解锁目标链上的资产
-- **链特定手续费**：不同目标链的不同销毁手续费
-- **生成函数**：`vmtoken.SpawnCrossChainMultiToken`
+### 基础代币（Basic Token）
 
-### 服务端挂载
+基础代币提供标准的同质化代币功能，适用于大多数代币发行场景。
 
-当 Hymx 节点启动时，可以挂载所有代币类型：
+**模块格式**：`hymx.basic.token.0.0.1`
 
-```go
-// 挂载基础代币
-s.Mount("hymx.basic.token.0.0.1", vmtoken.SpawnBasicToken)
+**功能特性**：
+- ✅ 代币信息查询（Info）
+- ✅ 参数设置（Set-Params）
+- ✅ 总供应量查询（Total-Supply）
+- ✅ 余额查询（Balance）
+- ✅ 转账（Transfer）
+- ✅ 铸造（Mint）
+- ❌ 不支持销毁（Burn）
 
-// 挂载跨链代币
-s.Mount("hymx.crosschain.token.0.0.1", vmtoken.SpawnCrossChainToken)
+**适用场景**：
+- 简单的代币发行
+- 不需要销毁功能的场景
+- 轻量级代币需求
 
-// 挂载跨链多代币
-s.Mount("hymx.cross.chain.multi.token.0.0.1", vmtoken.SpawnCrossChainMultiToken)
-```
+### 跨链代币（Cross-Chain Token）
 
-### 实例化（Spawn）参数
+跨链代币在基础代币功能基础上，增加了跨链铸造和销毁功能，支持多链资产桥接。
 
-所有代币类型都需要在实例化时传入以下标签（Tags）：
-- **Name**: 代币名称（必填）
-- **Ticker**: 代币符号（必填）
-- **Decimals**: 精度（必填，字符串数值）
-- **Logo**: Logo 的 Arweave 资源标识（可选）
-- **Description**: 代币描述（可选）
-- **MaxSupply**: 最大供应量（可选，十进制字符串，默认为 "0" 表示无限制）
-- **MintOwner**: 允许增发代币的账户（可选，默认为 owner）
+**模块格式**：`hymx.crosschain.token.0.0.1`
 
-#### 跨链代币特有参数：
-- **BurnFee**: 销毁手续费（可选，默认为 "0"）
-- **FeeRecipient**: 手续费接收者（可选，默认为 owner）
-- **BurnProcessor**: 销毁交易后处理器（可选，默认为 owner）
+**功能特性**：
+- ✅ 所有基础代币功能
+- ✅ 跨链铸造（Cross-Chain Mint）
+- ✅ 跨链销毁（Cross-Chain Burn）
+- ✅ 多链支持（支持不同链类型的源代币）
+- ✅ 锁定数量跟踪（SourceLockAmounts）
+- ✅ 销毁手续费（BurnFees，按链类型配置）
+- ✅ 手续费接收者（FeeRecipient）
+- ✅ 销毁处理器（BurnProcessor）
 
-#### 跨链多代币特有参数：
-- **BurnFees**: 链特定销毁手续费的 JSON 对象（可选，例如：`{"ethereum":"500000","bsc":"40000"}`）
-- **FeeRecipient**: 手续费接收者（可选，默认为 owner）
-- **BurnProcessor**: 销毁交易后处理器（可选，默认为 owner）
+**适用场景**：
+- 跨链资产桥接
+- 多链代币发行
+- 需要销毁功能的场景
+- 跨链 DeFi 应用
 
-**注意**: 跨链代币和跨链多代币也支持基础代币的所有参数，包括 `MintOwner`
+## 操作说明
 
-实例化后：
-- `owner` 是实例化账户（`env.AccId`）
-- 初始状态：`totalSupply = 0`，`balances = {}`
-- `mintOwner` 默认为 `owner`，但可在生成时指定（允许调用 Mint 的账户；可由 `owner` 更改）
-- **跨链代币**：`burnFee = 0`，`feeRecipient = owner`，`burnProcessor = owner`
-- **跨链多代币**：`burnFees = {}`，`feeRecipient = owner`，`burnProcessor = owner`
+### 基础代币操作
 
-### 操作和参数
+#### 1. 实例化（Spawn）
 
-#### 通用操作（所有代币类型）
+创建基础代币实例时，需要提供以下参数：
 
-- **Info**
-  - 返回基本代币信息
-  - 参数：无
-  - 返回标签：`Name`、`Ticker`、`Logo`、`Denomination(=Decimals)`、`Description`、`MaxSupply`、`Owner`、`MintOwner`
-  - **跨链代币**：额外标签包括 `BurnFee`、`FeeRecipient`、`BurnProcessor`
-  - **跨链多代币**：额外标签包括 `BurnFees`、`FeeRecipient`、`BurnProcessor`、`SourceTokenChains`、`SourceLockAmounts`
-  - 首次调用时，初始化并写入缓存（见缓存键）
+**必需参数**：
+- `Name`：代币名称
+- `Ticker`：代币符号
+- `Decimals`：小数位数（十进制字符串）
 
-- **Set-Params**（仅限 owner）
-  - 更新代币和账户参数
-  - **基础代币**：`Owner`、`MintOwner`、`Name`、`Ticker`、`Decimals`、`Logo`、`Description`、`MaxSupply`（十进制字符串）
-  - **跨链代币**：所有基础参数 + `FeeRecipient`、`BurnFee`（十进制字符串）、`BurnProcessor`
-  - **跨链多代币**：所有基础参数 + `FeeRecipient`、`BurnFees`（JSON 对象）、`BurnProcessor`
-  - 返回标签：`Set-Params-Notice = success`
-  - 缓存：刷新 `TokenInfo`
+**可选参数**：
+- `Logo`：代币 Logo（Arweave 交易 ID）
+- `Description`：代币描述
+- `MintOwner`：铸造权限所有者（默认为创建者）
+- `MaxSupply`：最大供应量（十进制字符串，默认为 "0" 表示无限制）
 
-- **Total-Supply / TotalSupply**
-  - 查询总供应量
-  - 参数：无
-  - 返回：消息 Data 是总供应量的十进制字符串；标签包括 `Action=Total-Supply`、`Ticker`
-
-- **Balance**
-  - 查询账户余额
-  - 参数：`Recipient` 或 `Target`。如果都未提供，默认为调用者账户
-  - 返回标签：`Balance`、`Ticker`、`Account`（查询的账户）。Data 是余额字符串
-
-- **Transfer**
-  - 从调用者转账到 `Recipient`
-  - 参数：`Recipient`（必需；支持 EVM/Arweave 地址）、`Quantity`（必需；十进制字符串）
-  - 验证：数量格式；足够余额；`Recipient` 通过 ID 检查
-  - 返回：两个消息：
-    - 调用者的 `Debit-Notice`，标签包括 `Ticker`、`Action=Debit-Notice`、`Recipient`、`Quantity`、`TransactionId`
-    - 接收者的 `Credit-Notice`，标签包括 `Ticker`、`Action=Credit-Notice`、`Sender`、`Quantity`、`TransactionId`
-  - 缓存：更新 `Balances:<sender>`、`Balances:<recipient>`、`TotalSupply`
-
-- **Mint**（仅限 mintOwner）
-  - 向 `Recipient` 增发 `Quantity`
-  - 参数：`Recipient`、`Quantity`（十进制字符串）
-  - 权限：调用者必须等于 `mintOwner`（可通过 `Set-Params` 由 `owner` 配置）
-  - 返回：两个 `Mint-Notice` 消息（给 owner 和 recipient），标签包括 `Recipient`、`Quantity`、`Ticker`
-  - 缓存：更新 `totalSupply` 和受影响的账户缓存
-
-#### 跨链代币特有操作
-
-- **Burn**
-  - 从调用者销毁 `Quantity`；`burnFee` 转移给 `feeRecipient`。净销毁量 = `Quantity - burnFee`
-  - 参数：`Quantity`（必需，十进制字符串）；`Recipient` 或 `X-Recipient`（可选；默认为 `from`）
-  - 验证：`Quantity >= burnFee`；地址通过 ID 检查；足够余额
-  - 返回：一个 `Burn-Notice`，标签包括 `Sender`、`X-Recipient`、`Quantity`（=净销毁量）、`Ticker`、`TokenId`、`Fee`、`FeeRecipient`
-  - 缓存：更新 `totalSupply`（减去净销毁量）和 `from`、`feeRecipient` 的缓存
-  - **特殊说明**：销毁通知消息会发送到 `BurnProcessor` 指定的地址
-
-#### 跨链多代币特有操作
-
-- **Mint**（多链跨链铸造）
-  - 基于源链锁定的资产向 `Recipient` 铸造 `Quantity`
-  - 参数：`Recipient`（必需）、`Quantity`（必需，十进制字符串）、`SourceChainType`（必需）、`SourceTokenId`（必需）、`X-MintTxHash`（可选）
-  - 权限：调用者必须等于 `mintOwner`
-  - 跟踪源链和代币映射，更新锁定数量
-  - 返回：两个 `Mint-Notice` 消息（给 owner 和 recipient），标签包括 `Recipient`、`Quantity`、`Ticker`、`SourceChainType`、`SourceTokenId`、`X-MintTxHash`
-  - 缓存：更新 `totalSupply`、受影响的账户缓存和 `SourceLockAmounts`
-
-- **Burn**（多链跨链销毁）
-  - 从调用者销毁 `Quantity` 以解锁目标链上的资产
-  - 参数：`Quantity`（必需，十进制字符串）、`TargetTokenId`（必需）、`Recipient` 或 `X-Recipient`（可选；默认为调用者）
-  - 验证：`Quantity >= 目标链的销毁手续费`；足够余额；目标链有足够的锁定数量
-  - 使用基于目标链类型的链特定销毁手续费
-  - 返回：一个 `Burn-Notice`，标签包括 `Sender`、`X-Recipient`、`Quantity`（=净销毁量）、`Ticker`、`WrappedTokenId`、`Fee`、`FeeRecipient`、`TargetChainType`、`TargetTokenId`
-  - 缓存：更新 `totalSupply`（减去净销毁量）、`SourceLockAmounts` 和调用者、`feeRecipient` 的缓存
-  - **特殊说明**：销毁通知消息会发送到 `BurnProcessor` 指定的地址
-
-### 缓存键（通过 Hymx 节点 HTTP）
-
-#### 基础代币缓存键
-- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Description`、`MaxSupply`、`Owner`、`MintOwner` 的 JSON 字符串
-- `TotalSupply`：总供应量字符串
-- `Balances`：完整余额映射的 JSON 字符串
-- `Balances:<Account>`：账户余额字符串
-
-#### 跨链代币缓存键
-- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner`、`BurnFee`、`FeeRecipient`、`BurnProcessor` 的 JSON 字符串
-- `TotalSupply`：总供应量字符串
-- `Balances`：完整余额映射的 JSON 字符串
-- `Balances:<Account>`：账户余额字符串
-
-#### 跨链多代币缓存键
-- `TokenInfo`：包含 `Name`、`Ticker`、`Denomination`、`Logo`、`Owner`、`MintOwner`、`BurnFees`、`FeeRecipient`、`BurnProcessor`、`SourceTokenChains`、`SourceLockAmounts` 的 JSON 字符串
-- `TotalSupply`：总供应量字符串
-- `Balances`：完整余额映射的 JSON 字符串
-- `Balances:<Account>`：账户余额字符串
-
-### 使用示例
-
-#### 生成基础代币
+**示例**：
 ```go
 res, err := hySdk.SpawnAndWait(
-    BASIC_MODULE,    // 通过 Utils 中 module.go 生成的 基础代币的模块 Id
-    SCHEDULER,                    // 调度器 AccId（通常是本节点地址）
+    BASIC_MODULE,    // 基础代币模块 ID
+    SCHEDULER,       // 调度器地址
     []goarSchema.Tag{
-        {Name: "Name", Value: "基础代币"},
-        {Name: "Ticker", Value: "bToken"},
-        {Name: "Decimals", Value: "12"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "Description", Value: "这是一个基础代币示例"},
-        {Name: "MaxSupply", Value: "1000000000"}, // 最大供应量（可选）
-        {Name: "MintOwner", Value: "0x..."}, // 允许增发代币的账户（可选）
-    },
-)
-tokenPid := res.Id
-```
-
-#### 生成跨链代币
-```go
-res, err := hySdk.SpawnAndWait(
-    CROSSCHAIN_MODULE, // 通过 Utils 中 module.go 生成的跨链代币的模块 Id
-    SCHEDULER,                      // 调度器 AccId（通常是本节点地址）
-    []goarSchema.Tag{
-        {Name: "Name", Value: "跨链代币"},
-        {Name: "Ticker", Value: "ccToken"},
+        {Name: "Name", Value: "My Token"},
+        {Name: "Ticker", Value: "MTK"},
         {Name: "Decimals", Value: "18"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "MintOwner", Value: "0x..."},      // 允许增发代币的账户（可选）
-        {Name: "BurnFee", Value: "100"},           // 销毁手续费
-        {Name: "FeeRecipient", Value: "0x..."},    // 手续费接收者
-        {Name: "BurnProcessor", Value: "0x..."},   // 销毁处理器
+        {Name: "MaxSupply", Value: "1000000000"},
+        {Name: "MintOwner", Value: "0x..."},
     },
 )
-tokenPid := res.Id
+tokenId := res.Id
 ```
 
-#### 生成跨链多代币
+#### 2. Info 操作
+
+查询代币信息。
+
+**参数**：无
+
+**返回标签**：
+- `Name`：代币名称
+- `Ticker`：代币符号
+- `Decimals`：小数位数
+- `Logo`：Logo
+- `Description`：描述
+- `Owner`：所有者
+- `MintOwner`：铸造权限所有者
+- `MaxSupply`：最大供应量
+
+**示例**：
 ```go
-res, err := hySdk.SpawnAndWait(
-    CROSSCHAIN_MULTI_MODULE, // 通过 Utils 中 module.go 生成的跨链多代币的模块 Id
-    SCHEDULER,                        // 调度器 AccId（通常是本节点地址）
-    []goarSchema.Tag{
-        {Name: "Name", Value: "跨链多代币"},
-        {Name: "Ticker", Value: "ccmToken"},
-        {Name: "Decimals", Value: "18"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "MintOwner", Value: "0x..."},      // 允许增发代币的账户（可选）
-        {Name: "BurnFees", Value: `{"ethereum":"500000","bsc":"40000","polygon":"30000"}`}, // 链特定销毁手续费
-        {Name: "FeeRecipient", Value: "0x..."},   // 手续费接收者
-        {Name: "BurnProcessor", Value: "0x..."},  // 销毁处理器
-    },
-)
-tokenPid := res.Id
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Info"},
+})
 ```
 
-#### 查询信息和余额
+#### 3. Set-Params 操作
+
+更新代币参数（仅限 Owner）。
+
+**可更新参数**：
+- `TokenOwner`：新的代币所有者
+- `MintOwner`：新的铸造权限所有者
+- `Name`：代币名称
+- `Ticker`：代币符号
+- `Decimals`：小数位数
+- `Logo`：Logo
+- `Description`：描述
+- `MaxSupply`：最大供应量（十进制字符串）
+
+**示例**：
 ```go
-// 信息查询
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Info"}})
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Set-Params"},
+    {Name: "Name", Value: "New Name"},
+    {Name: "MintOwner", Value: "0x..."},
+    {Name: "MaxSupply", Value: "2000000000"},
+})
+```
 
-// 总供应量
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Total-Supply"}})
+#### 4. Total-Supply 操作
 
-// 账户余额（选择其一：Recipient/Target）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
+查询代币总供应量。
+
+**参数**：无
+
+**返回**：总供应量（十进制字符串）
+
+**示例**：
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Total-Supply"},
+})
+```
+
+#### 5. Balance 操作
+
+查询账户余额。
+
+**参数**：
+- `Recipient` 或 `Target`：账户地址（可选，默认为调用者）
+
+**返回标签**：
+- `Balance`：余额
+- `Account`：账户地址
+- `Ticker`：代币符号
+
+**示例**：
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
     {Name: "Action", Value: "Balance"},
     {Name: "Recipient", Value: "0x..."},
 })
 ```
 
-#### 转账、增发、销毁
+#### 6. Transfer 操作
+
+转账代币。
+
+**参数**：
+- `Recipient`：接收者地址（必需）
+- `Quantity`：转账数量（十进制字符串，必需）
+- `X-*`：任意以 `X-` 开头的标签会被转发到通知消息中
+
+**通知消息**：
+- 发送者收到 `Debit-Notice` 消息
+- 接收者收到 `Credit-Notice` 消息
+
+**示例**：
 ```go
-// 转账
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
     {Name: "Action", Value: "Transfer"},
-    {Name: "Recipient", Value: "0x... 或 ar..."},
-    {Name: "Quantity", Value: "100000"},
-})
-
-// 增发（仅限 mintOwner）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Mint"},
-    {Name: "Recipient", Value: "0x... 或 ar..."},
-    {Name: "Quantity", Value: "50000000"},
-})
-
-// 销毁（仅跨链代币；从调用者；净销毁量 = Quantity - BurnFee）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Burn"},
-    {Name: "Quantity", Value: "1000"},
-    // 可选指定 X-Recipient 或 Recipient 用于链下结算提示
-})
-
-// 跨链多代币特有操作
-// 跨链铸造（仅限 mintOwner）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Mint"},
     {Name: "Recipient", Value: "0x..."},
-    {Name: "Quantity", Value: "1000000"},
-    {Name: "SourceChainType", Value: "ethereum"},
-    {Name: "SourceTokenId", Value: "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8"},
-    {Name: "X-MintTxHash", Value: "0x..."}, // 可选
-})
-
-// 跨链销毁（仅跨链多代币；带目标链选择）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Burn"},
-    {Name: "Quantity", Value: "1000000"},
-    {Name: "TargetTokenId", Value: "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8"},
-    {Name: "Recipient", Value: "0x..."}, // 可选，默认为调用者
+    {Name: "Quantity", Value: "1000"},
 })
 ```
 
-#### 更新参数（仅限 owner）
+#### 7. Mint 操作
+
+铸造代币（仅限 MintOwner）。
+
+**参数**：
+- `Recipient`：接收者地址（必需）
+- `Quantity`：铸造数量（十进制字符串，必需）
+
+**验证**：
+- 如果设置了 `MaxSupply`，铸造后总供应量不能超过最大供应量
+
+**通知消息**：
+- MintOwner 和接收者都会收到 `Mint-Notice` 消息
+
+**示例**：
 ```go
-// 基础代币参数
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
-    {Name: "Name", Value: "NewName"},
-    {Name: "Description", Value: "更新后的代币描述"},
-    {Name: "MaxSupply", Value: "2000000000"}, // 更新最大供应量
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Mint"},
+    {Name: "Recipient", Value: "0x..."},
+    {Name: "Quantity", Value: "10000"},
 })
+```
 
-// 跨链代币参数（包含销毁相关参数）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
-    {Name: "BurnFee", Value: "10"},        // 销毁手续费（仅跨链代币）
-    {Name: "FeeRecipient", Value: "0x..."}, // 手续费接收者（仅跨链代币）
-    {Name: "BurnProcessor", Value: "0x..."}, // 销毁处理器（仅跨链代币）
-    {Name: "Name", Value: "NewName"},
-})
+### 跨链代币操作
 
-// 跨链多代币参数（包含多链特定参数）
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // 允许调用 Mint 的账户
-    {Name: "BurnFees", Value: `{"ethereum":"600000","bsc":"50000"}`}, // 链特定销毁手续费
-    {Name: "FeeRecipient", Value: "0x..."}, // 手续费接收者
-    {Name: "BurnProcessor", Value: "0x..."}, // 销毁处理器
-    {Name: "Name", Value: "NewName"},
+跨链代币支持所有基础代币操作，并额外提供以下操作：
+
+#### 1. 实例化（Spawn）
+
+创建跨链代币实例时，需要提供以下参数：
+
+**必需参数**：
+- `Name`：代币名称
+- `Ticker`：代币符号
+- `Decimals`：小数位数（十进制字符串）
+
+**可选参数**：
+- `Logo`：代币 Logo
+- `Description`：代币描述
+- `MintOwner`：铸造权限所有者（默认为创建者）
+- `BurnFees`：销毁手续费（JSON 格式，例如：`{"ethereum":"100","bsc":"50"}`）
+- `FeeRecipient`：手续费接收者（默认为创建者）
+- `BurnProcessor`：销毁处理器（可选，用于接收销毁通知）
+
+**示例**：
+```go
+res, err := hySdk.SpawnAndWait(
+    CROSSCHAIN_MODULE, // 跨链代币模块 ID
+    SCHEDULER,
+    []goarSchema.Tag{
+        {Name: "Name", Value: "Cross-Chain Token"},
+        {Name: "Ticker", Value: "CCT"},
+        {Name: "Decimals", Value: "18"},
+        {Name: "BurnFees", Value: `{"ethereum":"100","bsc":"50"}`},
+        {Name: "FeeRecipient", Value: "0x..."},
+        {Name: "BurnProcessor", Value: "0x..."},
+    },
+)
+tokenId := res.Id
+```
+
+#### 2. Info 操作
+
+查询跨链代币信息。
+
+**返回标签**（包含基础代币的所有标签，以及）：
+- `BurnFees`：销毁手续费（JSON 字符串）
+- `FeeRecipient`：手续费接收者
+- `BurnProcessor`：销毁处理器
+- `SourceTokenChains`：源代币链映射（JSON 字符串，格式：`{"sourceTokenId":"chainType"}`）
+- `SourceLockAmounts`：源链锁定数量（JSON 字符串，格式：`{"chainType:sourceTokenId":"amount"}`）
+
+#### 3. Set-Params 操作
+
+更新跨链代币参数（仅限 Owner）。
+
+**可更新参数**（包含基础代币的所有参数，以及）：
+- `BurnFees`：销毁手续费（JSON 格式，例如：`{"ethereum":"200","bsc":"100"}`）
+- `FeeRecipient`：手续费接收者
+- `BurnProcessor`：销毁处理器
+
+#### 4. Mint 操作（跨链铸造）
+
+跨链铸造代币（仅限 MintOwner）。
+
+**参数**：
+- `Recipient`：接收者地址（必需）
+- `Quantity`：铸造数量（十进制字符串，必需）
+- `SourceChainType`：源链类型（必需，例如："ethereum", "bsc"）
+- `SourceTokenId`：源代币 ID（必需）
+- `X-MintTxHash`：铸造交易哈希（可选，用于防止重复铸造）
+
+**功能说明**：
+1. 验证 `X-MintTxHash` 是否已使用（如果提供）
+2. 建立或验证源代币链映射（`SourceTokenChain`）
+3. 增加接收者余额
+4. 增加总供应量
+5. 增加对应源链的锁定数量（`SourceLockAmount`）
+6. 记录铸造交易哈希（如果提供）
+
+**示例**：
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Mint"},
+    {Name: "Recipient", Value: "0x..."},
+    {Name: "Quantity", Value: "1000"},
+    {Name: "SourceChainType", Value: "ethereum"},
+    {Name: "SourceTokenId", Value: "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+    {Name: "X-MintTxHash", Value: "0x1234..."},
 })
+```
+
+#### 5. Burn 操作（跨链销毁）
+
+跨链销毁代币。
+
+**参数**：
+- `Quantity`：销毁数量（十进制字符串，必需）
+- `TargetTokenId`：目标代币 ID（必需，用于确定目标链）
+- `Recipient` 或 `X-Recipient`：接收者提示（可选，默认为调用者）
+
+**功能说明**：
+1. 根据 `TargetTokenId` 查找对应的链类型
+2. 验证该链类型的销毁手续费已设置
+3. 验证锁定数量是否足够（需要 `Quantity - BurnFee`）
+4. 从调用者扣除全部数量（`Quantity`）
+5. 将销毁手续费转给 `FeeRecipient`
+6. 减少总供应量（减少 `Quantity - BurnFee`）
+7. 减少对应源链的锁定数量（减少 `Quantity - BurnFee`）
+8. 向 `BurnProcessor` 发送销毁通知
+
+**验证规则**：
+- `Quantity >= BurnFee`（否则返回 `err_incorrect_quantity`）
+- 锁定数量 >= `Quantity - BurnFee`（否则返回 `err_insufficient_lock_amount`）
+
+**通知消息**：
+- `BurnProcessor` 收到 `Burn-Notice` 消息，包含：
+  - `Sender`：销毁者地址
+  - `X-Recipient`：接收者提示
+  - `Quantity`：净销毁数量（`Quantity - BurnFee`）
+  - `Fee`：手续费
+  - `FeeRecipient`：手续费接收者
+  - `TargetChainType`：目标链类型
+  - `TargetTokenId`：目标代币 ID
+
+**示例**：
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Burn"},
+    {Name: "Quantity", Value: "1000"},
+    {Name: "TargetTokenId", Value: "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+    {Name: "X-Recipient", Value: "0x..."},
+})
+```
+
+## 缓存系统
+
+所有代币状态都通过缓存系统提供快速查询。
+
+### 基础代币缓存键
+
+- `token-info`：代币信息的 JSON 字符串，包含：
+  - `Name`：代币名称
+  - `Ticker`：代币符号
+  - `Decimals`：小数位数
+  - `Logo`：Logo
+  - `Description`：描述
+  - `Owner`：所有者
+  - `MintOwner`：铸造权限所有者
+  - `MaxSupply`：最大供应量
+- `total-supply`：总供应量（十进制字符串）
+- `balances:<Account>`：账户余额（十进制字符串）
+- `Balances`：完整余额映射的 JSON 字符串
+
+### 跨链代币缓存键
+
+- `token-info`：代币信息的 JSON 字符串，包含：
+  - 基础代币的所有字段
+  - `BurnFees`：销毁手续费（JSON 字符串）
+  - `FeeRecipient`：手续费接收者
+  - `BurnProcessor`：销毁处理器
+  - `SourceTokenChains`：源代币链映射（JSON 字符串）
+  - `SourceLockAmounts`：源链锁定数量（JSON 字符串）
+- `total-supply`：总供应量（十进制字符串）
+- `balances:<Account>`：账户余额（十进制字符串）
+- `Balances`：完整余额映射的 JSON 字符串
+
+### 缓存查询示例
+
+```go
+// 查询代币信息
+info, err := hySdk.Client.GetCache(tokenId, "token-info")
+
+// 查询总供应量
+totalSupply, err := hySdk.Client.GetCache(tokenId, "total-supply")
+
+// 查询账户余额
+balance, err := hySdk.Client.GetCache(tokenId, "balances:"+accountId)
 ```
 
 ## 地址和数量规则
-- 地址：`Recipient/Target` 支持 EVM 或 Arweave 地址；内部通过 `IDCheck` 标准化
-- 数量：所有数量都是表示为十进制字符串的大整数
-- 销毁：要求 `Quantity >= BurnFee`，否则返回 `err_incorrect_quantity`
+
+### 地址格式
+
+- 支持 EVM 地址（0x 开头）和 Arweave 地址
+- 所有地址在内部通过 `IDCheck` 进行标准化处理
+- `Recipient`/`Target` 参数支持两种地址格式
+
+### 数量格式
+
+- 所有数量都是大整数，以十进制字符串表示
+- 例如：`"1000000"`、`"1000000000000000000"`（18 位小数）
+
+### 销毁规则
+
+- 销毁数量必须 >= 销毁手续费，否则返回 `err_incorrect_quantity`
+- 跨链销毁时，锁定数量必须 >= 净销毁数量（`Quantity - BurnFee`）
+
+## 错误码
+
+| 错误码 | 说明 |
+|--------|------|
+| `err_insufficient_balance` | 余额不足 |
+| `err_insufficient_max_supply` | 超过最大供应量 |
+| `err_invalid_from` | 无效的发送者地址 |
+| `err_missing_recipient` | 缺少接收者参数 |
+| `err_missing_quantity` | 缺少数量参数 |
+| `err_invalid_quantity_format` | 无效的数量格式 |
+| `err_incorrect_owner` | 权限不足（需要 Owner 或 MintOwner） |
+| `err_repeat_mint` | 重复铸造（相同的 X-MintTxHash） |
+| `err_incorrect_quantity` | 数量不正确（销毁数量 < 手续费） |
+| `err_missing_source_chain` | 缺少源链类型 |
+| `err_missing_source_token_id` | 缺少源代币 ID |
+| `err_missing_target_token_id` | 缺少目标代币 ID |
+| `err_incorrect_target_token_id` | 目标代币 ID 不存在 |
+| `err_lock_amount_empty` | 锁定数量为空 |
+| `err_insufficient_lock_amount` | 锁定数量不足 |
+| `err_missing_burn_fee` | 缺少销毁手续费配置 |
 
 ## 代币类型选择指南
 
 ### 选择基础代币当：
-- 您需要简单的代币功能（增发、转账、查询）
-- 您不需要销毁功能
-- 您想要更轻量的解决方案
-- 您在 Hymx 上构建基础资产
+
+- ✅ 只需要简单的代币功能（铸造、转账、查询）
+- ✅ 不需要销毁功能
+- ✅ 想要更轻量级的解决方案
+- ✅ 在 Hymx 上发行基础资产
 
 ### 选择跨链代币当：
-- 您需要销毁功能用于跨链操作
-- 您想要实现代币桥接或跨链结算
-- 您需要销毁手续费和手续费接收者
-- 您需要自定义销毁处理器
-- 您在构建跨链应用
 
-### 选择跨链多代币当：
-- 您需要支持多个链的不同代币
-- 您想要实现复杂的跨链桥接
-- 您需要链特定的销毁手续费
-- 您需要跟踪不同链的锁定数量
-- 您在构建多链 DeFi 应用
-- 您需要基于不同链锁定的资产铸造代币
+- ✅ 需要销毁功能用于跨链操作
+- ✅ 需要实现代币桥接或跨链结算
+- ✅ 需要销毁手续费和手续费接收者
+- ✅ 需要自定义销毁处理器
+- ✅ 需要跟踪多链锁定数量
+- ✅ 需要基于不同链的资产进行铸造
+- ✅ 构建跨链应用
 
-## 测试示例
-- 参见 `example/basic_token_test.go` 了解基础代币的完整端到端测试
-- 参见 `example/crosschain_token_test.go` 了解跨链代币的完整端到端测试
-- 参见 `example/cross_chain_multi_token_test.go` 了解跨链多代币的完整端到端测试
-- 示例模块 ID 在 `cmd/mod/*.json` 下提供。您的环境可能不同；使用您实际部署的 ID
+## 服务器集成
 
-## 开发和构建
-```bash
-go mod tidy
-go build -o hymx ./cmd
+项目提供了服务器集成，可以将代币 VM 挂载到 Hymx 节点：
+
+```go
+s := server.New(node, nil)
+s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
+s.Mount(schema.VmTokenCrossChainModuleFormat, crosschain.Spawn)
+s.Run(port)
 ```
 
+## 测试和示例
 
+项目提供了完整的测试用例：
+
+- `test/basic_token_test.go`：基础代币的完整测试用例
+- `test/crosschain_token_test.go`：跨链代币的完整测试用例
+
+测试用例展示了：
+- 代币创建和初始化
+- 各种操作的调用方式
+- 缓存查询和验证
+- 跨链铸造和销毁的完整流程
+
+## 许可证
+
+详见 LICENSE 文件。

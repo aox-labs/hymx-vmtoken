@@ -71,7 +71,7 @@ func run(c *cli.Context) (err error) {
 	s := server.New(node, nil)
 	// mount vm token variants
 	s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
-	s.Mount(schema.VmTokenCrossChainModuleFormat, crosschain.Spawn)
+	s.Mount(schema.VmTokenCrossChainMultiModuleFormat, crosschain.Spawn)
 
 	s.Run(port)
 

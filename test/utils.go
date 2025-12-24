@@ -15,7 +15,7 @@ var (
 	RegistryModule = "MVTil0kn5SRiJELW7W2jLZ6cBr3QUGj1nJ67I2Wi4Ps"
 
 	BasicTokenMod = "9bQh650l10NZ7GHUvj1L_kIIiivp9Zj7kJNY3CLEcRM" // Token token module format
-	CcTokenMod    = "QW_l2HiEgurKA-_gxe5JXYYuqpkFwyps_V1RjGO86-c" // Cross-chain token module format
+	CcTokenMod    = "PxAJFkNuJqcRKB6475tqqT2R0G1OT-0KDcqHMbejV84" // Cross-chain token module format
 
 )
 
@@ -42,6 +42,10 @@ func crosschainToken(name, symbol, decimals string) string {
 		})
 	if err != nil {
 		panic(err)
+	}
+	vmErr := gjson.Get(res.Message, "Error").Str
+	if vmErr != "" {
+		panic(vmErr)
 	}
 	return res.Id
 }

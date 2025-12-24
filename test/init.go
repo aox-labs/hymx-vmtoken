@@ -100,7 +100,7 @@ func initNode() {
 
 	// mount your vm here.....
 	s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
-	s.Mount(schema.VmTokenCrossChainModuleFormat, crosschain.Spawn)
+	s.Mount(schema.VmTokenCrossChainMultiModuleFormat, crosschain.Spawn)
 
 	s.Run(port)
 }
