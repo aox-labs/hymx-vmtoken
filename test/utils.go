@@ -3,11 +3,12 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	bSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
 	cSchema "github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain/schema"
 	goarSchema "github.com/permadao/goar/schema"
 	"github.com/tidwall/gjson"
-	"math/big"
 )
 
 var (
@@ -161,4 +162,127 @@ func mustParseBigInt(s string) *big.Int {
 		panic(fmt.Sprintf("invalid big.Int string: %s", s))
 	}
 	return val
+}
+
+// parseSourceTokenChains parses the SourceTokenChains JSON string
+func parseSourceTokenChains(jsonStr string) map[string]string {
+	if jsonStr == "" {
+		return make(map[string]string)
+	}
+	var result map[string]string
+	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
+		panic(fmt.Sprintf("failed to parse SourceTokenChains: %v", err))
+	}
+	return result
+}
+
+// parseSourceLockAmounts parses the SourceLockAmounts JSON string
+func parseSourceLockAmounts(jsonStr string) map[string]*big.Int {
+	if jsonStr == "" {
+		return make(map[string]*big.Int)
+	}
+	var amounts map[string]*big.Int
+	if err := json.Unmarshal([]byte(jsonStr), &amounts); err != nil {
+		panic(fmt.Sprintf("failed to parse SourceLockAmounts: %v", err))
+	}
+	return amounts
+}
+
+// crossChainMint performs a cross-chain mint operation
+// Required params: recipient, quantity, sourceChainType, sourceTokenId
+// Optional params: mintTxHash
+func crossChainMint(tokenId, recipient, quantity, sourceChainType, sourceTokenId, mintTxHash string) {
+	tags := []goarSchema.Tag{
+		{Name: "Action", Value: "Mint"},
+		{Name: "Recipient", Value: recipient},
+		{Name: "Quantity", Value: quantity},
+		{Name: "SourceChainType", Value: sourceChainType},
+		{Name: "SourceTokenId", Value: sourceTokenId},
+	}
+	if mintTxHash != "" {
+		tags = append(tags, goarSchema.Tag{Name: "X-MintTxHash", Value: mintTxHash})
+	}
+
+	resp, err := hysdk.SendMessageAndWait(tokenId, "", tags)
+	if err != nil {
+		panic(err)
+	}
+	vmErr := gjson.Get(resp.Message, "Error").Str
+	if vmErr != "" {
+		panic(vmErr)
+	}
+}
+
+// crossChainBurn performs a cross-chain burn operation
+// Required params: quantity, targetTokenId
+// Optional params: recipient (or X-Recipient)
+func crossChainBurn(tokenId, quantity, targetTokenId, recipient string) {
+	tags := []goarSchema.Tag{
+		{Name: "Action", Value: "Burn"},
+		{Name: "Quantity", Value: quantity},
+		{Name: "TargetTokenId", Value: targetTokenId},
+	}
+	if recipient != "" {
+		tags = append(tags, goarSchema.Tag{Name: "X-Recipient", Value: recipient})
+	}
+
+	resp, err := hysdk.SendMessageAndWait(tokenId, "", tags)
+	if err != nil {
+		panic(err)
+	}
+	vmErr := gjson.Get(resp.Message, "Error").Str
+	if vmErr != "" {
+		panic(vmErr)
+	}
+}
+
+// setCcTokenBurnFee sets the burn fee for a specific chain type
+func setCcTokenBurnFee(tokenId, chainType, burnFee string) {
+	// Set the burn fee for the chain type using Set-Params
+	// Note: BurnFees is a JSON object for multiple chains
+	burnFeesJson := fmt.Sprintf(`{"%s":"%s"}`, chainType, burnFee)
+	tags := []goarSchema.Tag{
+		{Name: "Action", Value: "Set-Params"},
+		{Name: "BurnFees", Value: burnFeesJson},
+	}
+
+	resp, err := hysdk.SendMessageAndWait(tokenId, "", tags)
+	if err != nil {
+		panic(err)
+	}
+	vmErr := gjson.Get(resp.Message, "Error").Str
+	if vmErr != "" {
+		panic(vmErr)
+	}
+}
+
+func setCcTokenParams(tokenId, burnFee, feeRecipient, burnProcessor, name string) {
+	tags := []goarSchema.Tag{
+		{Name: "Action", Value: "Set-Params"},
+	}
+	// Note: BurnFees is a JSON object for multiple chains
+	// For single chain, we can use a simple JSON format
+	if burnFee != "" {
+		// Use a default chain type "default" if no specific chain is provided
+		burnFeesJson := fmt.Sprintf(`{"default":"%s"}`, burnFee)
+		tags = append(tags, goarSchema.Tag{Name: "BurnFees", Value: burnFeesJson})
+	}
+	if feeRecipient != "" {
+		tags = append(tags, goarSchema.Tag{Name: "FeeRecipient", Value: feeRecipient})
+	}
+	if burnProcessor != "" {
+		tags = append(tags, goarSchema.Tag{Name: "BurnProcessor", Value: burnProcessor})
+	}
+	if name != "" {
+		tags = append(tags, goarSchema.Tag{Name: "Name", Value: name})
+	}
+
+	resp, err := hysdk.SendMessageAndWait(tokenId, "", tags)
+	if err != nil {
+		panic(err)
+	}
+	vmErr := gjson.Get(resp.Message, "Error").Str
+	if vmErr != "" {
+		panic(vmErr)
+	}
 }
