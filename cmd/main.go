@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/aox-labs/hymx-vmtoken/vmtoken"
+	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic"
+	"github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain"
 	"github.com/aox-labs/hymx-vmtoken/vmtoken/schema"
 	"github.com/gin-gonic/gin"
 	"github.com/hymatrix/hymx/common"
@@ -69,8 +70,8 @@ func run(c *cli.Context) (err error) {
 
 	s := server.New(node, nil)
 	// mount vm token variants
-	s.Mount(schema.VmTokenBasicModuleFormat, vmtoken.SpawnBasicToken)
-	s.Mount(schema.VmTokenCrossChainModuleFormat, vmtoken.SpawnCrossChainToken)
+	s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
+	s.Mount(schema.VmTokenCrossChainModuleFormat, crosschain.Spawn)
 
 	s.Run(port)
 
