@@ -25,7 +25,7 @@ func (t *Token) handleInfo(from string) (res vmmSchema.Result) {
 		{Name: "Name", Value: info.Name},
 		{Name: "Ticker", Value: info.Ticker},
 		{Name: "Logo", Value: info.Logo},
-		{Name: "Denomination", Value: info.Decimals},
+		{Name: "Decimals", Value: info.Decimals},
 		{Name: "Description", Value: info.Description},
 		{Name: "Owner", Value: t.basic.DB.Owner()},
 		{Name: "MintOwner", Value: t.basic.DB.MintOwner()},
@@ -54,8 +54,8 @@ func (t *Token) handleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema
 	}
 
 	// Handle base token parameters
-	if meta.Params["Owner"] != "" {
-		_, newOwner, err := utils.IDCheck(meta.Params["Owner"])
+	if meta.Params["TokenOwner"] != "" {
+		_, newOwner, err := utils.IDCheck(meta.Params["TokenOwner"])
 		if err != nil {
 			res.Error = schema.ErrInvalidOwner
 			return

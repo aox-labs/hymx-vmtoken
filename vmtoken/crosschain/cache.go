@@ -2,15 +2,16 @@ package crosschain
 
 import (
 	"encoding/json"
+	"github.com/aox-labs/hymx-vmtoken/vmtoken/crosschain/schema"
 	"maps"
 )
 
 func (t *Token) initCache() (cache map[string]string) {
-	if !t.basic.DB.CacheInitial() {
+	if t.basic.DB.CacheInitial() {
 		return
 	}
 	defer t.basic.DB.CacheInitialed()
-
+	cache = map[string]string{}
 	maps.Copy(cache, t.basic.CacheBalances())
 	maps.Copy(cache, t.basic.CacheTotalSupply())
 	maps.Copy(cache, t.cacheTokenInfo())
@@ -28,22 +29,22 @@ func (t *Token) cacheTokenInfo() map[string]string {
 	sourceLockAmountsJson, _ := json.Marshal(t.db.GetSourceLockAmounts())
 
 	info := t.basic.DB.Info()
-	tokenInfo := map[string]string{
-		"Name":              info.Name,
-		"Ticker":            info.Ticker,
-		"Logo":              info.Logo,
-		"Denomination":      info.Decimals,
-		"Description":       info.Description,
-		"Owner":             t.basic.DB.Owner(),
-		"MintOwner":         t.basic.DB.MintOwner(),
-		"BurnFees":          string(burnFeesJson),
-		"FeeRecipient":      t.db.GetFeeRecipient(),
-		"BurnProcessor":     t.db.GetBurnProcessor(),
-		"SourceTokenChains": string(sourceTokenChainsJson),
-		"SourceLockAmounts": string(sourceLockAmountsJson),
+	cacheInfo := schema.CacheInfo{
+		Name:              info.Name,
+		Ticker:            info.Ticker,
+		Decimals:          info.Decimals,
+		Logo:              info.Logo,
+		Description:       info.Description,
+		Owner:             t.basic.DB.Owner(),
+		MintOwner:         t.basic.DB.MintOwner(),
+		BurnFees:          string(burnFeesJson),
+		FeeRecipient:      t.db.GetFeeRecipient(),
+		BurnProcessor:     t.db.GetBurnProcessor(),
+		SourceTokenChains: string(sourceTokenChainsJson),
+		SourceLockAmounts: string(sourceLockAmountsJson),
 	}
 
-	res, _ := json.Marshal(tokenInfo)
+	res, _ := json.Marshal(cacheInfo)
 	return map[string]string{
 		"token-info": string(res),
 	}

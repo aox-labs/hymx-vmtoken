@@ -31,6 +31,8 @@ func NewBasicToken(info schema.Info, owner string, mintOwner string, maxSupply *
 		balances:    map[string]*big.Int{},
 		owner:       owner,
 		mintOwner:   mintOwner,
+		initialSync: false,
+		rwlock:      sync.RWMutex{},
 	}
 }
 

@@ -2,16 +2,18 @@ package basic
 
 import (
 	"encoding/json"
+	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
 	"maps"
 	"math/big"
 )
 
 func (b *Token) initCache() (cache map[string]string) {
-	if !b.DB.CacheInitial() {
+	if b.DB.CacheInitial() {
 		return
 	}
 	defer b.DB.CacheInitialed()
 
+	cache = map[string]string{}
 	maps.Copy(cache, b.CacheBalances())
 	maps.Copy(cache, b.CacheTotalSupply())
 	maps.Copy(cache, b.cacheTokenInfo())
@@ -20,17 +22,17 @@ func (b *Token) initCache() (cache map[string]string) {
 
 func (b *Token) cacheTokenInfo() map[string]string {
 	info := b.DB.Info()
-	tokenInfo := map[string]string{
-		"Name":         info.Name,
-		"Ticker":       info.Ticker,
-		"Logo":         info.Logo,
-		"Denomination": info.Decimals,
-		"Description":  info.Description,
-		"Owner":        b.DB.Owner(),
-		"MintOwner":    b.DB.MintOwner(),
-		"MaxSupply":    b.DB.MaxSupply().String(),
+	cacheInfo := schema.CacheInfo{
+		Name:        info.Name,
+		Ticker:      info.Ticker,
+		Decimals:    info.Decimals,
+		Logo:        info.Logo,
+		Description: info.Description,
+		Owner:       b.DB.Owner(),
+		MintOwner:   b.DB.MintOwner(),
+		MaxSupply:   b.DB.MaxSupply().String(),
 	}
-	res, _ := json.Marshal(tokenInfo)
+	res, _ := json.Marshal(cacheInfo)
 	return map[string]string{
 		"token-info": string(res),
 	}

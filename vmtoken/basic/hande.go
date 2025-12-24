@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"encoding/json"
 	"github.com/aox-labs/hymx-vmtoken/vmtoken/basic/schema"
 	vmmSchema "github.com/hymatrix/hymx/vmm/schema"
 	"github.com/hymatrix/hymx/vmm/utils"
@@ -12,6 +13,8 @@ import (
 
 func (b *Token) handleInfo(from string) (res vmmSchema.Result) {
 	info := b.DB.Info()
+	cache := b.initCache()
+	c, _ := json.Marshal(cache)
 	res.Messages = []*vmmSchema.ResMessage{
 		{
 			Target: from,
@@ -19,14 +22,16 @@ func (b *Token) handleInfo(from string) (res vmmSchema.Result) {
 				{Name: "Name", Value: info.Name},
 				{Name: "Ticker", Value: info.Ticker},
 				{Name: "Logo", Value: info.Logo},
-				{Name: "Denomination", Value: info.Decimals},
+				{Name: "Decimals", Value: info.Decimals},
 				{Name: "Description", Value: info.Description},
 				{Name: "Owner", Value: b.DB.Owner()},
 				{Name: "MintOwner", Value: b.DB.MintOwner()},
+				{Name: "MaxSupply", Value: b.DB.MaxSupply().String()},
 			},
+			Data: string(c),
 		},
 	}
-	res.Cache = b.initCache()
+	res.Cache = cache
 	return
 }
 
@@ -36,8 +41,8 @@ func (b *Token) handleSetParams(from string, meta vmmSchema.Meta) (res vmmSchema
 		return
 	}
 
-	if meta.Params["Owner"] != "" {
-		_, newOwner, err := utils.IDCheck(meta.Params["Owner"])
+	if meta.Params["TokenOwner"] != "" {
+		_, newOwner, err := utils.IDCheck(meta.Params["TokenOwner"])
 		if err != nil {
 			res.Error = schema.ErrInvalidOwner
 			return
