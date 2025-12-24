@@ -1,355 +1,481 @@
-## hymx-vmtoken
+# hymx-vmtoken
 
-A generic Token VM implementation for Hymatrix Hymx with support for basic, cross-chain, and cross-chain multi-tokens.
+A generic Token VM implementation for Hymatrix Hymx with support for basic and cross-chain tokens.
 
-This project provides:
-- **Basic Token VM**: Standard token functionality without burn support (ModuleFormat: `hymx.basic.token.0.0.1`)
-- **Cross-Chain Token VM**: Extended token functionality with burn support for cross-chain operations (ModuleFormat: `hymx.crosschain.token.0.0.1`)
-- **Cross-Chain Multi Token VM**: Advanced token functionality supporting multiple chains with cross-chain mint/burn operations (ModuleFormat: `hymx.cross.chain.multi.token.0.0.1`)
-- **Server integration**: Mount all token types as VMs on a Hymx node and expose token parameter cache reading
-- **SDK examples**: Use `github.com/hymatrix/hymx/sdk` to deploy and interact with tokens (see examples for end-to-end tests)
+## Overview
 
-Best suited for developers who want to issue and manage fungible tokens on Hymx, with options for basic tokens or cross-chain tokens with burn functionality.
+This project provides two token VM implementations:
 
-### Token Types and Module Formats
+- **Basic Token VM**: Standard token functionality with mint, transfer, query, and other basic operations (Module Format: `hymx.basic.token.0.0.1`)
+- **Cross-Chain Token VM**: Extended token functionality that adds cross-chain mint and burn operations on top of basic tokens (Module Format: `hymx.crosschain.token.0.0.1`)
 
-#### Basic Token (Recommended for simple use cases)
-- **Module Format**: `schema.VmTokenBasicModuleFormat = "hymx.basic.token.0.0.1"`
-- **Features**: Info, Set-Params, Total-Supply, Balance, Transfer, Mint
-- **No Burn Support**: Lighter weight, suitable for basic asset issuance
-- **Spawn Function**: `vmtoken.SpawnBasicToken`
+All token types can be mounted as VMs on Hymx nodes and provide fast state queries through a caching system.
 
-#### Cross-Chain Token (For cross-chain operations)
-- **Module Format**: `schema.VmTokenCrossChainModuleFormat = "hymx.crosschain.token.0.0.1"`
-- **Features**: All basic features + Burn functionality
-- **Burn Support**: Includes burn fees and fee recipients for cross-chain settlements
-- **Burn Processor**: Supports custom burn notification processor, defaults to MintOwner
-- **Spawn Function**: `vmtoken.SpawnCrossChainToken`
+## Token Types
 
-#### Cross-Chain Multi Token (For multi-chain cross-chain operations)
-- **Module Format**: `schema.VmTokenCrossChainMultiModuleFormat = "hymx.cross.chain.multi.token.0.0.1"`
-- **Features**: All basic features + Cross-chain mint/burn with multi-chain support
-- **Multi-Chain Support**: Tracks source chains and locked amounts for different tokens
-- **Cross-Chain Mint**: Mint tokens based on locked assets from different chains
-- **Cross-Chain Burn**: Burn tokens to unlock assets on target chains
-- **Chain-Specific Fees**: Different burn fees for different target chains
-- **Spawn Function**: `vmtoken.SpawnCrossChainMultiToken`
+### Basic Token
 
-### Server Mounting
+Basic tokens provide standard fungible token functionality suitable for most token issuance scenarios.
 
-When a Hymx node starts, it can mount all token types:
+**Module Format**: `hymx.basic.token.0.0.1`
 
-```go
-// Mount basic token
-s.Mount("hymx.basic.token.0.0.1", vmtoken.SpawnBasicToken)
+**Features**:
+- ✅ Token info query (Info)
+- ✅ Parameter setting (Set-Params)
+- ✅ Total supply query (Total-Supply)
+- ✅ Balance query (Balance)
+- ✅ Transfer
+- ✅ Mint
+- ❌ No burn support
 
-// Mount cross-chain token  
-s.Mount("hymx.crosschain.token.0.0.1", vmtoken.SpawnCrossChainToken)
+**Use Cases**:
+- Simple token issuance
+- Scenarios that don't require burn functionality
+- Lightweight token requirements
 
-// Mount cross-chain multi token
-s.Mount("hymx.cross.chain.multi.token.0.0.1", vmtoken.SpawnCrossChainMultiToken)
-```
+### Cross-Chain Token
 
-### Spawn Parameters
+Cross-chain tokens extend basic token functionality with cross-chain mint and burn operations, supporting multi-chain asset bridging.
 
-All token types require the following tags when instantiating:
-- **Name**: token name (required)
-- **Ticker**: token symbol (required)  
-- **Decimals**: precision (required, decimal string)
-- **Logo**: Arweave resource identifier for the logo (optional)
-- **MintOwner**: account allowed to mint tokens (optional, defaults to owner)
+**Module Format**: `hymx.crosschain.token.0.0.1`
 
-#### Cross-Chain Token Specific Parameters:
-- **BurnFee**: burn fee (optional, defaults to "0")
-- **FeeRecipient**: fee recipient (optional, defaults to owner)
-- **BurnProcessor**: burn transaction processor (optional, defaults to owner)
+**Features**:
+- ✅ All basic token features
+- ✅ Cross-chain mint
+- ✅ Cross-chain burn
+- ✅ Multi-chain support (supports source tokens from different chain types)
+- ✅ Locked amount tracking (SourceLockAmounts)
+- ✅ Burn fees (BurnFees, configurable per chain type)
+- ✅ Fee recipient (FeeRecipient)
+- ✅ Burn processor (BurnProcessor)
 
-#### Cross-Chain Multi Token Specific Parameters:
-- **BurnFees**: JSON object with chain-specific burn fees (optional, e.g., `{"ethereum":"500000","bsc":"40000"}`)
-- **FeeRecipient**: fee recipient (optional, defaults to owner)
-- **BurnProcessor**: burn transaction processor (optional, defaults to owner)
+**Use Cases**:
+- Cross-chain asset bridging
+- Multi-chain token issuance
+- Scenarios requiring burn functionality
+- Cross-chain DeFi applications
 
-**Note**: Cross-chain tokens and cross-chain multi tokens also support all basic token parameters, including `MintOwner`
+## Operations
 
-After spawning:
-- `owner` is the spawner account (`env.AccId`)
-- Initial state: `totalSupply = 0`, `balances = {}`
-- `mintOwner` defaults to `owner` but can be specified during spawn (the account allowed to call Mint; can be changed by `owner`)
-- **Cross-chain tokens only**: `burnFee = 0`, `feeRecipient = owner`, `burnProcessor = owner`
-- **Cross-chain multi tokens only**: `burnFees = {}`, `feeRecipient = owner`, `burnProcessor = owner`
+### Basic Token Operations
 
-### Actions and Parameters
+#### 1. Spawn
 
-#### Common Actions (All Token Types)
+When creating a basic token instance, provide the following parameters:
 
-- **Info**
-  - Returns basic token info.
-  - Params: none.
-  - Return tags: `Name`, `Ticker`, `Logo`, `Denomination(=Decimals)`, `Owner`, `MintOwner`.
-  - **Cross-chain tokens**: Additional tags include `BurnFee`, `FeeRecipient`, `BurnProcessor`.
-  - **Cross-chain multi tokens**: Additional tags include `BurnFees`, `FeeRecipient`, `BurnProcessor`, `SourceTokenChains`, `SourceLockAmounts`.
-  - On first call, initializes and writes cache (see Cache Keys).
+**Required Parameters**:
+- `Name`: Token name
+- `Ticker`: Token symbol
+- `Decimals`: Decimal places (decimal string)
 
-- **Set-Params** (owner-only)
-  - Updates token and account parameters.
-  - **Basic tokens**: `Owner`, `MintOwner`, `Name`, `Ticker`, `Decimals`, `Logo`.
-  - **Cross-chain tokens**: All basic params + `FeeRecipient`, `BurnFee` (decimal string), `BurnProcessor`.
-  - **Cross-chain multi tokens**: All basic params + `FeeRecipient`, `BurnFees` (JSON object), `BurnProcessor`.
-  - Return tags: `Set-Params-Notice = success`.
-  - Cache: refreshes `TokenInfo`.
+**Optional Parameters**:
+- `Logo`: Token logo (Arweave transaction ID)
+- `Description`: Token description
+- `MintOwner`: Mint permission owner (defaults to creator)
+- `MaxSupply`: Maximum supply (decimal string, defaults to "0" meaning unlimited)
 
-- **Total-Supply / TotalSupply**
-  - Queries total supply.
-  - Params: none.
-  - Return: message Data is the total as a decimal string; tags include `Action=Total-Supply`, `Ticker`.
-
-- **Balance**
-  - Queries balance for an account.
-  - Params: either `Recipient` or `Target`. If neither provided, defaults to the caller account.
-  - Return tags: `Balance`, `Ticker`, `Account` (queried account). Data is the balance string.
-
-- **Transfer**
-  - Transfers from caller to `Recipient`.
-  - Params: `Recipient` (required; supports EVM/Arweave addresses), `Quantity` (required; decimal string).
-  - Validation: quantity format; sufficient balance; `Recipient` passes ID check.
-  - Return: two messages:
-    - Caller's `Debit-Notice` with tags `Ticker`, `Action=Debit-Notice`, `Recipient`, `Quantity`, `TransactionId`.
-    - Recipient's `Credit-Notice` with tags `Ticker`, `Action=Credit-Notice`, `Sender`, `Quantity`, `TransactionId`.
-  - Cache: updates `Balances:<sender>`, `Balances:<recipient>`, `TotalSupply`.
-
-- **Mint** (mintOwner-only)
-  - Mints `Quantity` to `Recipient`.
-  - Params: `Recipient`, `Quantity` (decimal string).
-  - Permission: caller must equal `mintOwner` (configurable by `owner` via `Set-Params`).
-  - Return: two `Mint-Notice` messages (to owner and recipient), tags include `Recipient`, `Quantity`, `Ticker`.
-  - Cache: updates `totalSupply` and affected account caches.
-
-#### Cross-Chain Token Only Actions
-
-- **Burn**
-  - Burns `Quantity` from caller; `burnFee` is transferred to `feeRecipient`. Net burn = `Quantity - burnFee`.
-  - Params: `Quantity` (required, decimal string); `Recipient` or `X-Recipient` (optional; defaults to `from`).
-  - Validation: `Quantity >= burnFee`; address passes ID check; sufficient balance.
-  - Return: one `Burn-Notice` with tags `Sender`, `X-Recipient`, `Quantity` (=net burn), `Ticker`, `TokenId`, `Fee`, `FeeRecipient`.
-  - Cache: updates `totalSupply` (minus net burn) and caches for `from` and `feeRecipient`.
-  - **Special Note**: Burn notification messages are sent to the address specified by `BurnProcessor`.
-
-#### Cross-Chain Multi Token Only Actions
-
-- **Mint** (Cross-chain mint with multi-chain support)
-  - Mints `Quantity` to `Recipient` based on locked assets from source chains.
-  - Params: `Recipient` (required), `Quantity` (required, decimal string), `SourceChainType` (required), `SourceTokenId` (required), `X-MintTxHash` (optional).
-  - Permission: caller must equal `mintOwner`.
-  - Tracks source chain and token mappings, updates locked amounts.
-  - Return: two `Mint-Notice` messages (to owner and recipient), tags include `Recipient`, `Quantity`, `Ticker`, `SourceChainType`, `SourceTokenId`, `X-MintTxHash`.
-  - Cache: updates `totalSupply`, affected account caches, and `SourceLockAmounts`.
-
-- **Burn** (Cross-chain burn with target chain selection)
-  - Burns `Quantity` from caller to unlock assets on target chains.
-  - Params: `Quantity` (required, decimal string), `TargetTokenId` (required), `Recipient` or `X-Recipient` (optional; defaults to caller).
-  - Validation: `Quantity >= burnFee` for target chain; sufficient balance; sufficient locked amount for target chain.
-  - Uses chain-specific burn fees based on target chain type.
-  - Return: one `Burn-Notice` with tags `Sender`, `X-Recipient`, `Quantity` (=net burn), `Ticker`, `WrappedTokenId`, `Fee`, `FeeRecipient`, `TargetChainType`, `TargetTokenId`.
-  - Cache: updates `totalSupply` (minus net burn), `SourceLockAmounts`, and caches for caller and `feeRecipient`.
-  - **Special Note**: Burn notification messages are sent to the address specified by `BurnProcessor`.
-
-### Cache Keys (via Hymx node HTTP)
-
-#### Basic Token Cache Keys
-- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`.
-- `TotalSupply`: total supply as a string.
-- `Balances:<Account>`: balance string of an account.
-
-#### Cross-Chain Token Cache Keys
-- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFee`, `FeeRecipient`, `BurnProcessor`.
-- `TotalSupply`: total supply as a string.
-- `Balances:<Account>`: balance string of an account.
-
-#### Cross-Chain Multi Token Cache Keys
-- `TokenInfo`: stringified JSON with `Name`, `Ticker`, `Denomination`, `Logo`, `Owner`, `MintOwner`, `BurnFees`, `FeeRecipient`, `BurnProcessor`, `SourceTokenChains`, `SourceLockAmounts`.
-- `TotalSupply`: total supply as a string.
-- `Balances:<Account>`: balance string of an account.
-
-### Usage Examples
-
-#### Spawn a Basic Token
+**Example**:
 ```go
 res, err := hySdk.SpawnAndWait(
-    BASIC_MODULE,    // Basic token module ID generated from Utils module.go
-    SCHEDULER,                    // scheduler AccId (usually this node's address)
+    BASIC_MODULE,    // Basic token module ID
+    SCHEDULER,       // Scheduler address
     []goarSchema.Tag{
-        {Name: "Name", Value: "Basic Token"},
-        {Name: "Ticker", Value: "bToken"},
-        {Name: "Decimals", Value: "12"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "MintOwner", Value: "0x..."}, // account allowed to mint tokens (optional)
-    },
-)
-tokenPid := res.Id
-```
-
-#### Spawn a Cross-Chain Token
-```go
-res, err := hySdk.SpawnAndWait(
-    CROSSCHAIN_MODULE, // Cross-chain token module ID generated from Utils module.go
-    SCHEDULER,                      // scheduler AccId (usually this node's address)
-    []goarSchema.Tag{
-        {Name: "Name", Value: "Cross-Chain Token"},
-        {Name: "Ticker", Value: "ccToken"},
+        {Name: "Name", Value: "My Token"},
+        {Name: "Ticker", Value: "MTK"},
         {Name: "Decimals", Value: "18"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "MintOwner", Value: "0x..."},      // account allowed to mint tokens (optional)
-        {Name: "BurnFee", Value: "100"},           // burn fee
-        {Name: "FeeRecipient", Value: "0x..."},    // fee recipient
-        {Name: "BurnProcessor", Value: "0x..."},   // burn processor
+        {Name: "MaxSupply", Value: "1000000000"},
+        {Name: "MintOwner", Value: "0x..."},
     },
 )
-tokenPid := res.Id
+tokenId := res.Id
 ```
 
-#### Spawn a Cross-Chain Multi Token
+#### 2. Info Operation
+
+Query token information.
+
+**Parameters**: None
+
+**Return Tags**:
+- `Name`: Token name
+- `Ticker`: Token symbol
+- `Decimals`: Decimal places
+- `Logo`: Logo
+- `Description`: Description
+- `Owner`: Owner
+- `MintOwner`: Mint permission owner
+- `MaxSupply`: Maximum supply
+
+**Example**:
 ```go
-res, err := hySdk.SpawnAndWait(
-    CROSSCHAIN_MULTI_MODULE, // Cross-chain multi token module ID generated from Utils module.go
-    SCHEDULER,                        // scheduler AccId (usually this node's address)
-    []goarSchema.Tag{
-        {Name: "Name", Value: "Cross-Chain Multi Token"},
-        {Name: "Ticker", Value: "ccmToken"},
-        {Name: "Decimals", Value: "18"},
-        {Name: "Logo", Value: "<arweave-txid>"},
-        {Name: "MintOwner", Value: "0x..."},      // account allowed to mint tokens (optional)
-        {Name: "BurnFees", Value: `{"ethereum":"500000","bsc":"40000","polygon":"30000"}`}, // chain-specific burn fees
-        {Name: "FeeRecipient", Value: "0x..."},   // fee recipient
-        {Name: "BurnProcessor", Value: "0x..."},  // burn processor
-    },
-)
-tokenPid := res.Id
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Info"},
+})
 ```
 
-#### Query info and balances
+#### 3. Set-Params Operation
+
+Update token parameters (Owner only).
+
+**Updatable Parameters**:
+- `TokenOwner`: New token owner
+- `MintOwner`: New mint permission owner
+- `Name`: Token name
+- `Ticker`: Token symbol
+- `Decimals`: Decimal places
+- `Logo`: Logo
+- `Description`: Description
+- `MaxSupply`: Maximum supply (decimal string)
+
+**Example**:
 ```go
-// Info
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Info"}})
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Set-Params"},
+    {Name: "Name", Value: "New Name"},
+    {Name: "MintOwner", Value: "0x..."},
+    {Name: "MaxSupply", Value: "2000000000"},
+})
+```
 
-// Total supply
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{{Name: "Action", Value: "Total-Supply"}})
+#### 4. Total-Supply Operation
 
-// Account balance (choose one: Recipient/Target)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
+Query token total supply.
+
+**Parameters**: None
+
+**Returns**: Total supply (decimal string)
+
+**Example**:
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Total-Supply"},
+})
+```
+
+#### 5. Balance Operation
+
+Query account balance.
+
+**Parameters**:
+- `Recipient` or `Target`: Account address (optional, defaults to caller)
+
+**Return Tags**:
+- `Balance`: Balance
+- `Account`: Account address
+- `Ticker`: Token symbol
+
+**Example**:
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
     {Name: "Action", Value: "Balance"},
     {Name: "Recipient", Value: "0x..."},
 })
 ```
 
-#### Transfer, Mint, Burn
+#### 6. Transfer Operation
+
+Transfer tokens.
+
+**Parameters**:
+- `Recipient`: Recipient address (required)
+- `Quantity`: Transfer amount (decimal string, required)
+- `X-*`: Any tags starting with `X-` will be forwarded to notification messages
+
+**Notification Messages**:
+- Sender receives `Debit-Notice` message
+- Recipient receives `Credit-Notice` message
+
+**Example**:
 ```go
-// Transfer
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
     {Name: "Action", Value: "Transfer"},
-    {Name: "Recipient", Value: "0x... or ar..."},
-    {Name: "Quantity", Value: "100000"},
-})
-
-// Mint (mintOwner-only)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Mint"},
-    {Name: "Recipient", Value: "0x... or ar..."},
-    {Name: "Quantity", Value: "50000000"},
-})
-
-// Burn (Cross-chain tokens only; from caller; net burn = Quantity - BurnFee)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Burn"},
-    {Name: "Quantity", Value: "1000"},
-    // optionally specify X-Recipient or Recipient for off-chain settlement hints
-})
-
-// Cross-chain Multi Token specific operations
-// Cross-chain Mint (mintOwner-only)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Mint"},
     {Name: "Recipient", Value: "0x..."},
-    {Name: "Quantity", Value: "1000000"},
-    {Name: "SourceChainType", Value: "ethereum"},
-    {Name: "SourceTokenId", Value: "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8"},
-    {Name: "X-MintTxHash", Value: "0x..."}, // optional
-})
-
-// Cross-chain Burn (Cross-chain multi tokens only; with target chain selection)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Burn"},
-    {Name: "Quantity", Value: "1000000"},
-    {Name: "TargetTokenId", Value: "0xa0b86c33c6b7c8c8c8c8c8c8c8c8c8c8c8c8c8c8"},
-    {Name: "Recipient", Value: "0x..."}, // optional, defaults to caller
+    {Name: "Quantity", Value: "1000"},
 })
 ```
 
-#### Update parameters (owner-only)
+#### 7. Mint Operation
+
+Mint tokens (MintOwner only).
+
+**Parameters**:
+- `Recipient`: Recipient address (required)
+- `Quantity`: Mint amount (decimal string, required)
+
+**Validation**:
+- If `MaxSupply` is set, total supply after minting cannot exceed maximum supply
+
+**Notification Messages**:
+- Both MintOwner and recipient receive `Mint-Notice` messages
+
+**Example**:
 ```go
-// Basic token parameters
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // account allowed to call Mint
-    {Name: "Name", Value: "NewName"},
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Mint"},
+    {Name: "Recipient", Value: "0x..."},
+    {Name: "Quantity", Value: "10000"},
 })
+```
 
-// Cross-chain token parameters (includes burn-related params)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // account allowed to call Mint
-    {Name: "BurnFee", Value: "10"},        // burn fee (cross-chain tokens only)
-    {Name: "FeeRecipient", Value: "0x..."}, // fee recipient (cross-chain tokens only)
-    {Name: "BurnProcessor", Value: "0x..."}, // burn processor (cross-chain tokens only)
-    {Name: "Name", Value: "NewName"},
-})
+### Cross-Chain Token Operations
 
-// Cross-chain multi token parameters (includes multi-chain specific params)
-_, _ = hySdk.SendMessageAndWait(tokenPid, "", []goarSchema.Tag{
-    {Name: "Action", Value: "Set-Params"},
-    {Name: "MintOwner", Value: "0x..."},   // account allowed to call Mint
-    {Name: "BurnFees", Value: `{"ethereum":"600000","bsc":"50000"}`}, // chain-specific burn fees
-    {Name: "FeeRecipient", Value: "0x..."}, // fee recipient
-    {Name: "BurnProcessor", Value: "0x..."}, // burn processor
-    {Name: "Name", Value: "NewName"},
+Cross-chain tokens support all basic token operations and additionally provide the following operations:
+
+#### 1. Spawn
+
+When creating a cross-chain token instance, provide the following parameters:
+
+**Required Parameters**:
+- `Name`: Token name
+- `Ticker`: Token symbol
+- `Decimals`: Decimal places (decimal string)
+
+**Optional Parameters**:
+- `Logo`: Token logo
+- `Description`: Token description
+- `MintOwner`: Mint permission owner (defaults to creator)
+- `BurnFees`: Burn fees (JSON format, e.g., `{"ethereum":"100","bsc":"50"}`)
+- `FeeRecipient`: Fee recipient (defaults to creator)
+- `BurnProcessor`: Burn processor (optional, for receiving burn notifications)
+
+**Example**:
+```go
+res, err := hySdk.SpawnAndWait(
+    CROSSCHAIN_MODULE, // Cross-chain token module ID
+    SCHEDULER,
+    []goarSchema.Tag{
+        {Name: "Name", Value: "Cross-Chain Token"},
+        {Name: "Ticker", Value: "CCT"},
+        {Name: "Decimals", Value: "18"},
+        {Name: "BurnFees", Value: `{"ethereum":"100","bsc":"50"}`},
+        {Name: "FeeRecipient", Value: "0x..."},
+        {Name: "BurnProcessor", Value: "0x..."},
+    },
+)
+tokenId := res.Id
+```
+
+#### 2. Info Operation
+
+Query cross-chain token information.
+
+**Return Tags** (includes all basic token tags, plus):
+- `BurnFees`: Burn fees (JSON string)
+- `FeeRecipient`: Fee recipient
+- `BurnProcessor`: Burn processor
+- `SourceTokenChains`: Source token chain mapping (JSON string, format: `{"sourceTokenId":"chainType"}`)
+- `SourceLockAmounts`: Source chain locked amounts (JSON string, format: `{"chainType:sourceTokenId":"amount"}`)
+
+#### 3. Set-Params Operation
+
+Update cross-chain token parameters (Owner only).
+
+**Updatable Parameters** (includes all basic token parameters, plus):
+- `BurnFees`: Burn fees (JSON format, e.g., `{"ethereum":"200","bsc":"100"}`)
+- `FeeRecipient`: Fee recipient
+- `BurnProcessor`: Burn processor
+
+#### 4. Mint Operation (Cross-Chain Mint)
+
+Cross-chain mint tokens (MintOwner only).
+
+**Parameters**:
+- `Recipient`: Recipient address (required)
+- `Quantity`: Mint amount (decimal string, required)
+- `SourceChainType`: Source chain type (required, e.g., "ethereum", "bsc")
+- `SourceTokenId`: Source token ID (required)
+- `X-MintTxHash`: Mint transaction hash (optional, for preventing duplicate mints)
+
+**Functionality**:
+1. Verify if `X-MintTxHash` has been used (if provided)
+2. Establish or verify source token chain mapping (`SourceTokenChain`)
+3. Increase recipient balance
+4. Increase total supply
+5. Increase locked amount for corresponding source chain (`SourceLockAmount`)
+6. Record mint transaction hash (if provided)
+
+**Example**:
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Mint"},
+    {Name: "Recipient", Value: "0x..."},
+    {Name: "Quantity", Value: "1000"},
+    {Name: "SourceChainType", Value: "ethereum"},
+    {Name: "SourceTokenId", Value: "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+    {Name: "X-MintTxHash", Value: "0x1234..."},
 })
+```
+
+#### 5. Burn Operation (Cross-Chain Burn)
+
+Cross-chain burn tokens.
+
+**Parameters**:
+- `Quantity`: Burn amount (decimal string, required)
+- `TargetTokenId`: Target token ID (required, to determine target chain)
+- `Recipient` or `X-Recipient`: Recipient hint (optional, defaults to caller)
+
+**Functionality**:
+1. Find corresponding chain type based on `TargetTokenId`
+2. Verify that burn fee for that chain type is set
+3. Verify that locked amount is sufficient (requires `Quantity - BurnFee`)
+4. Deduct full amount from caller (`Quantity`)
+5. Transfer burn fee to `FeeRecipient`
+6. Decrease total supply (decrease by `Quantity - BurnFee`)
+7. Decrease locked amount for corresponding source chain (decrease by `Quantity - BurnFee`)
+8. Send burn notification to `BurnProcessor`
+
+**Validation Rules**:
+- `Quantity >= BurnFee` (otherwise returns `err_incorrect_quantity`)
+- Locked amount >= `Quantity - BurnFee` (otherwise returns `err_insufficient_lock_amount`)
+
+**Notification Messages**:
+- `BurnProcessor` receives `Burn-Notice` message containing:
+  - `Sender`: Burner address
+  - `X-Recipient`: Recipient hint
+  - `Quantity`: Net burn amount (`Quantity - BurnFee`)
+  - `Fee`: Fee
+  - `FeeRecipient`: Fee recipient
+  - `TargetChainType`: Target chain type
+  - `TargetTokenId`: Target token ID
+
+**Example**:
+```go
+_, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
+    {Name: "Action", Value: "Burn"},
+    {Name: "Quantity", Value: "1000"},
+    {Name: "TargetTokenId", Value: "0xa0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+    {Name: "X-Recipient", Value: "0x..."},
+})
+```
+
+## Cache System
+
+All token states are provided through a caching system for fast queries.
+
+### Basic Token Cache Keys
+
+- `token-info`: JSON string of token information, containing:
+  - `Name`: Token name
+  - `Ticker`: Token symbol
+  - `Decimals`: Decimal places
+  - `Logo`: Logo
+  - `Description`: Description
+  - `Owner`: Owner
+  - `MintOwner`: Mint permission owner
+  - `MaxSupply`: Maximum supply
+- `total-supply`: Total supply (decimal string)
+- `balances:<Account>`: Account balance (decimal string)
+- `Balances`: Complete balance mapping JSON string
+
+### Cross-Chain Token Cache Keys
+
+- `token-info`: JSON string of token information, containing:
+  - All basic token fields
+  - `BurnFees`: Burn fees (JSON string)
+  - `FeeRecipient`: Fee recipient
+  - `BurnProcessor`: Burn processor
+  - `SourceTokenChains`: Source token chain mapping (JSON string)
+  - `SourceLockAmounts`: Source chain locked amounts (JSON string)
+- `total-supply`: Total supply (decimal string)
+- `balances:<Account>`: Account balance (decimal string)
+- `Balances`: Complete balance mapping JSON string
+
+### Cache Query Examples
+
+```go
+// Query token info
+info, err := hySdk.Client.GetCache(tokenId, "token-info")
+
+// Query total supply
+totalSupply, err := hySdk.Client.GetCache(tokenId, "total-supply")
+
+// Query account balance
+balance, err := hySdk.Client.GetCache(tokenId, "balances:"+accountId)
 ```
 
 ## Address and Amount Rules
-- Addresses: `Recipient/Target` supports EVM or Arweave addresses; normalized via `IDCheck` internally.
-- Amounts: all amounts are big integers represented as decimal strings.
-- Burn: requires `Quantity >= BurnFee`, otherwise `err_incorrect_quantity` is returned.
+
+### Address Format
+
+- Supports EVM addresses (starting with 0x) and Arweave addresses
+- All addresses are normalized internally through `IDCheck`
+- `Recipient`/`Target` parameters support both address formats
+
+### Amount Format
+
+- All amounts are big integers represented as decimal strings
+- Examples: `"1000000"`, `"1000000000000000000"` (18 decimals)
+
+### Burn Rules
+
+- Burn amount must be >= burn fee, otherwise returns `err_incorrect_quantity`
+- For cross-chain burns, locked amount must be >= net burn amount (`Quantity - BurnFee`)
+
+## Error Codes
+
+| Error Code | Description |
+|------------|-------------|
+| `err_insufficient_balance` | Insufficient balance |
+| `err_insufficient_max_supply` | Exceeds maximum supply |
+| `err_invalid_from` | Invalid sender address |
+| `err_missing_recipient` | Missing recipient parameter |
+| `err_missing_quantity` | Missing quantity parameter |
+| `err_invalid_quantity_format` | Invalid quantity format |
+| `err_incorrect_owner` | Insufficient permissions (requires Owner or MintOwner) |
+| `err_repeat_mint` | Duplicate mint (same X-MintTxHash) |
+| `err_incorrect_quantity` | Incorrect quantity (burn amount < fee) |
+| `err_missing_source_chain` | Missing source chain type |
+| `err_missing_source_token_id` | Missing source token ID |
+| `err_missing_target_token_id` | Missing target token ID |
+| `err_incorrect_target_token_id` | Target token ID does not exist |
+| `err_lock_amount_empty` | Locked amount is empty |
+| `err_insufficient_lock_amount` | Insufficient locked amount |
+| `err_missing_burn_fee` | Missing burn fee configuration |
 
 ## Token Type Selection Guide
 
 ### Choose Basic Token when:
-- You need simple token functionality (mint, transfer, query)
-- You don't require burn functionality
-- You want a lighter weight solution
-- You're building basic assets on Hymx
+
+- ✅ You only need simple token functionality (mint, transfer, query)
+- ✅ You don't need burn functionality
+- ✅ You want a lighter-weight solution
+- ✅ You're issuing basic assets on Hymx
 
 ### Choose Cross-Chain Token when:
-- You need burn functionality for cross-chain operations
-- You want to implement token bridges or cross-chain settlements
-- You need burn fees and fee recipients
-- You need custom burn processors
-- You're building cross-chain applications
 
-### Choose Cross-Chain Multi Token when:
-- You need to support multiple chains with different tokens
-- You want to implement complex cross-chain bridges
-- You need chain-specific burn fees
-- You need to track locked amounts across different chains
-- You're building multi-chain DeFi applications
-- You need to mint tokens based on assets locked on different chains
+- ✅ You need burn functionality for cross-chain operations
+- ✅ You need to implement token bridging or cross-chain settlements
+- ✅ You need burn fees and fee recipients
+- ✅ You need custom burn processors
+- ✅ You need to track multi-chain locked amounts
+- ✅ You need to mint tokens based on assets from different chains
+- ✅ You're building cross-chain applications
 
-## Examples and Tests
-- See `example/basic_token_test.go` for a full, end-to-end example of basic token functionality
-- See `example/crosschain_token_test.go` for a full, end-to-end example of cross-chain token functionality
-- See `example/cross_chain_multi_token_test.go` for a full, end-to-end example of cross-chain multi token functionality
-- Sample module Ids are provided under `cmd/mod/*.json`. Your environment may differ; use your actual deployed Ids.
+## Server Integration
 
-## Development and Build
-```bash
-go mod tidy
-go build -o hymx ./cmd
+The project provides server integration to mount token VMs on Hymx nodes:
+
+```go
+s := server.New(node, nil)
+s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
+s.Mount(schema.VmTokenCrossChainModuleFormat, crosschain.Spawn)
+s.Run(port)
 ```
+
+## Testing and Examples
+
+The project provides complete test cases:
+
+- `test/basic_token_test.go`: Complete test cases for basic tokens
+- `test/crosschain_token_test.go`: Complete test cases for cross-chain tokens
+
+Test cases demonstrate:
+- Token creation and initialization
+- How to call various operations
+- Cache queries and validation
+- Complete cross-chain mint and burn workflows
+
+## License
+
+See LICENSE file for details.
