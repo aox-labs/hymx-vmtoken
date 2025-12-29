@@ -355,7 +355,7 @@ _, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
 
 ### 基础代币缓存键
 
-- `token-info`：代币信息的 JSON 字符串，包含：
+- `info`：代币信息的 JSON 字符串，包含：
   - `Name`：代币名称
   - `Ticker`：代币符号
   - `Decimals`：小数位数
@@ -370,7 +370,7 @@ _, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
 
 ### 跨链代币缓存键
 
-- `token-info`：代币信息的 JSON 字符串，包含：
+- `info`：代币信息的 JSON 字符串，包含：
   - 基础代币的所有字段
   - `BurnFees`：销毁手续费（JSON 字符串）
   - `FeeRecipient`：手续费接收者
@@ -385,7 +385,7 @@ _, _ = hySdk.SendMessageAndWait(tokenId, "", []goarSchema.Tag{
 
 ```go
 // 查询代币信息
-info, err := hySdk.Client.GetCache(tokenId, "token-info")
+info, err := hySdk.Client.GetCache(tokenId, "info")
 
 // 查询总供应量
 totalSupply, err := hySdk.Client.GetCache(tokenId, "total-supply")

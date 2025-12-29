@@ -3,6 +3,7 @@ package basic
 import (
 	"encoding/json"
 	"github.com/aox-labs/hymx-vmtoken/schema"
+	"github.com/hymatrix/hymx/vmm/utils"
 	"maps"
 	"math/big"
 )
@@ -34,13 +35,17 @@ func (b *Token) cacheTokenInfo() map[string]string {
 	}
 	res, _ := json.Marshal(cacheInfo)
 	return map[string]string{
-		"token-info": string(res),
+		"info": string(res),
 	}
 }
 
 func (b *Token) CacheChangeBalance(updateAccounts ...string) map[string]string {
 	cacheMap := make(map[string]string)
-	for _, accId := range updateAccounts {
+	for _, acc := range updateAccounts {
+		_, accId, err := utils.IDCheck(acc)
+		if err != nil {
+			continue
+		}
 		bal, err := b.DB.BalanceOf(accId)
 		if err != nil {
 			bal = big.NewInt(0)

@@ -355,7 +355,7 @@ All token states are provided through a caching system for fast queries.
 
 ### Basic Token Cache Keys
 
-- `token-info`: JSON string of token information, containing:
+- `info`: JSON string of token information, containing:
   - `Name`: Token name
   - `Ticker`: Token symbol
   - `Decimals`: Decimal places
@@ -370,7 +370,7 @@ All token states are provided through a caching system for fast queries.
 
 ### Cross-Chain Token Cache Keys
 
-- `token-info`: JSON string of token information, containing:
+- `info`: JSON string of token information, containing:
   - All basic token fields
   - `BurnFees`: Burn fees (JSON string)
   - `FeeRecipient`: Fee recipient
@@ -385,7 +385,7 @@ All token states are provided through a caching system for fast queries.
 
 ```go
 // Query token info
-info, err := hySdk.Client.GetCache(tokenId, "token-info")
+info, err := hySdk.Client.GetCache(tokenId, "info")
 
 // Query total supply
 totalSupply, err := hySdk.Client.GetCache(tokenId, "total-supply")
