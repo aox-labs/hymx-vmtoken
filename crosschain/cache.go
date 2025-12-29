@@ -46,6 +46,6 @@ func (t *Token) cacheTokenInfo() map[string]string {
 
 	res, _ := json.Marshal(cacheInfo)
 	return map[string]string{
-		"token-info": string(res),
+		"info": string(res),
 	}
 }

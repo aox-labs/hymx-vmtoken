@@ -113,7 +113,7 @@ func transfer(tokenId, to, amt string) {
 }
 
 func getBasicTokenInfoByCache(tokenId string) schema.BasicCacheInfo {
-	infoJs, err := hysdk.Client.GetCache(tokenId, "token-info")
+	infoJs, err := hysdk.Client.GetCache(tokenId, "info")
 	if err != nil {
 		panic(fmt.Sprintf("failed to get info: %v", err))
 	}
@@ -127,7 +127,7 @@ func getBasicTokenInfoByCache(tokenId string) schema.BasicCacheInfo {
 }
 
 func getCcTokenInfoByCache(tokenId string) schema.CrossChainCacheInfo {
-	infoJs, err := hysdk.Client.GetCache(tokenId, "token-info")
+	infoJs, err := hysdk.Client.GetCache(tokenId, "info")
 	if err != nil {
 		panic(fmt.Sprintf("failed to get amm info: %v", err))
 	}
