@@ -52,6 +52,13 @@ func (b *Token) CacheChangeBalance(updateAccounts ...string) map[string]string {
 		}
 		cacheMap["balances:"+accId] = bal.String()
 	}
+
+	// update balances
+	balances, err := b.DB.Balances()
+	if err == nil {
+		balanceBy, _ := json.Marshal(balances)
+		cacheMap["balances"] = string(balanceBy)
+	}
 	return cacheMap
 }
 
