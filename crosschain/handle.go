@@ -257,7 +257,8 @@ func (t *Token) handleCrossChainMint(from string, params map[string]string) (res
 }
 
 // handleCrossChainBurn handles cross-chain burning with target chain selection
-func (t *Token) handleCrossChainBurn(from string, params map[string]string) (res vmmSchema.Result) {
+func (t *Token) handleCrossChainBurn(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
+	params := meta.Params
 	// Determine recipient (default to sender if not specified)
 	recipient := params["Recipient"]
 	if recipient == "" {
@@ -334,6 +335,8 @@ func (t *Token) handleCrossChainBurn(from string, params map[string]string) (res
 			{Name: "FeeRecipient", Value: t.db.GetFeeRecipient()},
 			{Name: "TargetChainType", Value: targetChainType},
 			{Name: "TargetTokenId", Value: targetTokenId},
+
+			{Name: "BurnTxHash", Value: meta.ItemId},
 		},
 	}
 

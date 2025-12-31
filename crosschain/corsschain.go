@@ -106,7 +106,7 @@ func (t *Token) Apply(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 	case "Mint":
 		res = t.handleCrossChainMint(from, meta.Params)
 	case "Burn":
-		res = t.handleCrossChainBurn(from, meta.Params)
+		res = t.handleCrossChainBurn(from, meta)
 	}
 	return
 }
