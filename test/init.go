@@ -95,14 +95,14 @@ func initNode() {
 	gin.DefaultWriter = io.Discard
 	gin.DefaultErrorWriter = io.Discard
 
-	node := node.New(bundler, redisURL, arweaveURL, hymxURL, nodeInfo, nil)
+	node := node.New(nil, bundler, redisURL, arweaveURL, hymxURL, nodeInfo, nil)
 	s := server.New(node, nil)
 
 	// mount your vm here.....
 	s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
 	s.Mount(schema.VmTokenCrossChainMultiModuleFormat, crosschain.Spawn)
 
-	s.Run(port)
+	s.Run(port, "", "")
 }
 
 func initTokenAndRegistry() {

@@ -105,6 +105,8 @@ func (t *Token) Apply(from string, meta vmmSchema.Meta) (res vmmSchema.Result) {
 		res = t.basic.HandleTransfer(meta.ItemId, from, meta.Params)
 	case "Mint":
 		res = t.handleCrossChainMint(from, meta.Params)
+	case "Remove-Balance":
+		res = t.handleRemoveBalance(from, meta)
 	case "Burn":
 		res = t.handleCrossChainBurn(from, meta)
 	}

@@ -65,7 +65,7 @@ func run(c *cli.Context) (err error) {
 		log15.Root().SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 	}
 
-	node := node.New(bundler, redisURL, arweaveURL, hymxURL, nodeInfo, nil)
+	node := node.New(nil, bundler, redisURL, arweaveURL, hymxURL, nodeInfo, nil)
 	// chainkit := chainkit.New(node, LoadChainkitConfig())
 
 	s := server.New(node, nil)
@@ -73,7 +73,8 @@ func run(c *cli.Context) (err error) {
 	s.Mount(schema.VmTokenBasicModuleFormat, basic.Spawn)
 	s.Mount(schema.VmTokenCrossChainMultiModuleFormat, crosschain.Spawn)
 
-	s.Run(port)
+	s.Run(port, "", "rebuild")
+	// s.Run(port, "", "normal")
 
 	log.Info("server is running", "wallet", bundler.Address, "port", port)
 
